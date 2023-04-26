@@ -1,5 +1,5 @@
 ---
-title: "Themed dashboard"
+title: "Sanctuaries Climate Dashboard"
 output: 
   flexdashboard::flex_dashboard:
     theme:

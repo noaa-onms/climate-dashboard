@@ -1,0 +1,90 @@
+---
+title: "Sanctuaries Climate Dashboard"
+output: 
+  flexdashboard::flex_dashboard:
+    self_contained: false
+    lib_dir: libs
+    includes:
+      in_header: "./_navbar.html"
+params:
+  nms: "CBNMS"
+  sanctuary: "Cordell Bank"
+---
+
+```{r setup}
+# params <- list(
+#   nms       = "CBNMS",
+#   sanctuary = "Cordell Bank")
+
+librarian::shelf(
+  dplyr, glue, here, mapview, sf, stringr,
+  marinebon/extractr)
+# devtools::load_all("~/Github/marinebon/extractr")
+source(here("scripts/functions.R"))
+
+sanctuaries <- readRDS(here("data/sanctuaries.rds"))
+```
+
+# `r params$sanctuary`
+
+## Map {.sidebar data-width=400}
+
+```{r}
+sanctuaries |> 
+  filter(sanctuary == params$sanctuary) |> 
+  map_sanctuary()
+```
+
+## Column {.tabset}
+
+### Climatological
+
+#### Coral Reef Watch
+    
+```{r}
+ts_csv <- here(glue("data/CRW_SST/{params$nms}.csv"))
+plot_ts(ts_csv, fld_sd = "sd")
+```
+    
+#### Chart C.2
+
+```{r}
+```
+
+### Physical-chemical
+
+#### Chart P.1
+
+```{r}
+```
+
+#### Chart P.2
+
+```{r}
+```
+
+
+### Biological
+
+#### Chart B.1
+
+```{r}
+```
+
+#### Chart B.2
+
+```{r}
+```
+
+### Human Dimensions
+
+#### Chart H.1
+
+```{r}
+```
+
+#### Chart H.2
+
+```{r}
+```
+
