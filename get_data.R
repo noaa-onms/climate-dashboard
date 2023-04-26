@@ -1,11 +1,12 @@
 # load packages ----
-if (!installed.packages("librarian"))
+if (!"librarian" %in% installed.packages()[,1])
   install.packages("librarian")
 librarian::shelf(
   dplyr, glue, here, sf, stringr,
   calcofi/calcofi4r, # temporarily to get Chumash
   noaa-onms/onmsR #, marinebon/extractr
   )
+# TODO: fix onmsr -- Warning message: replacing previous import ‘magrittr::extract’ by ‘tidyr::extract’ when loading ‘onmsR’
 devtools::load_all("~/Github/marinebon/extractr/")
 
 # notes ----
@@ -37,30 +38,35 @@ sanctuaries$sanctuary[sanctuaries$nms == "FGBNMS"] = "Flower Garden Banks"
 # choose ERDDAP dataset ----
 ed_url   <- "https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.html"
 ed_var   <- "CRW_SST"
+ed_dates <- glue("{1986:2023}-01-01")
+# TODO: assign vars to sanctuaries since Coral Reef Watch not applicable to all
 
 ed <- extractr::get_ed_info(ed_url)
 
 # iterate over sanctuaries ----
 for (i in 1:nrow(sanctuaries)){ # i = 1
   ply <- slice(sanctuaries, i)
+  message(glue("sanctuary: {ply$nms} ~ {Sys.time()}"))
 
   dir_tif <- here(glue("data/{ed_var}/{ply$nms}"))
   ts_csv  <- here(glue("data/{ed_var}/{ply$nms}.csv"))
 
-  dir.create(dir_grds, showWarnings = F, recursive = T)
+  dir.create(dir_tif, showWarnings = F, recursive = T)
 
-  grds <- get_ed_grds(
-    ed, ed_var = ed_var, ply = ply, dir_tif = dir_tif,
-    date_beg = "2023-04-20",
-    date_end = "2023-04-24",
-    verbose = T) # , date_beg = "2021-10-01")
+  for (date_i in ed_dates){  # date_i = ed_dates[1]
+    # devtools::load_all("~/Github/marinebon/extractr")
+    grds <- get_ed_grds(
+      ed, ed_var = ed_var, ply = ply, dir_tif = dir_tif,
+      date_beg = date_i, date_end = date_i,
+      verbose = T) # , date_beg = "2021-10-01")
+  }
+  grds <- terra::rast(list.files(dir_tif, "tif$", full.names = T))
+  # mapview::mapView(grds[[1]])
 
-  # devtools::load_all("~/Github/marinebon/extractr")
-  ts <- grds_to_ts(grds, ts_csv = ts_csv, verbose = T)
+  ts <- grds_to_ts(
+    grds, fxns = c("mean", "sd", "isNA", "notNA"),
+    ts_csv = ts_csv, verbose = T)
 
   # plot_ts(ts_csv, "mean", "sd", label = ed_var)
 }
-
-
-
 
