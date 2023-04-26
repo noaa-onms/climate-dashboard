@@ -3,7 +3,7 @@ title: "Sanctuaries Climate Dashboard"
 output: 
   flexdashboard::flex_dashboard:
     self_contained: false
-    lib_dir: libs
+    lib_dir: "docs/libs"
     includes:
       in_header: "./_navbar.html"
 params:

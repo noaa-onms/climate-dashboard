@@ -2,15 +2,16 @@
 if (!"librarian" %in% installed.packages()[,1])
   install.packages("librarian")
 librarian::shelf(
-  dplyr, glue, here, rmarkdown, sf, stringr)
-# devtools::install_github("rstudio/flexdashboard")
+  dplyr, fs, glue, here, rmarkdown, sf, stringr)
+
+dir_delete(here("docs"))
+dir_create(here("docs"))
 
 sanctuaries <- readRDS(here("data/sanctuaries.rds")) |>
   arrange(sanctuary)
 for (i in 1:nrow(sanctuaries)){ # i = 1
-#for (i in 1:3){ # i = 2
   s <- slice(sanctuaries, i)
-  out_html <- here(glue("{s$nms}.html"))
+  out_html <- here(glue("docs/{s$nms}.html"))
   message(glue("{s$sanctuary} -> {basename(out_html)}"))
 
   render(
@@ -21,6 +22,10 @@ for (i in 1:nrow(sanctuaries)){ # i = 1
       nms       = s$nms))
 }
 
+# make index
+render(
+  here("index.Rmd"),
+  output_file = here(glue("docs/index.html")))
 
 
 
