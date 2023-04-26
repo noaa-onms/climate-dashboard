@@ -15,25 +15,28 @@ devtools::load_all("~/Github/marinebon/extractr/")
 # * [indicators - climate vulnerability for sanctuaries - Google Sheets](https://docs.google.com/spreadsheets/d/1H8JGwdVM5YCZXPhcVLNpSvITlxCraDKUwMVpr_5Rn3Q/edit#gid=0)
 
 # get sanctuaries ----
-
-# table(cc_places$category)
-sanctuaries <- onmsR::sanctuaries |>
-  select(-spatial) |>
-  filter(
-    str_detect(nms, "NMS"),
-    !nms %in% c("WSCNMS")) |>
-  rbind(
-    # TODO: + Chumash Proposed Action in onmsr
-    calcofi4r::cc_places |>
-      filter(key == "nms_cp") |>
-      mutate(
-        nms = "CPNMS") |>
-      select(
-        sanctuary = name,
-        nms, geom ) ) |>
-  arrange(nms)
-# TODO: ∆ "Flower Garden BanksUpdated 03/23/21" to "Flower Garden Banks" in onmsr
-sanctuaries$sanctuary[sanctuaries$nms == "FGBNMS"] = "Flower Garden Banks"
+sanctuaries_rds <- here("data/sanctuaries.rds")
+if (!file.exists(sanctuaries_rds)){
+  # table(cc_places$category)
+  sanctuaries <- onmsR::sanctuaries |>
+    select(-spatial) |>
+    filter(
+      str_detect(nms, "NMS"),
+      !nms %in% c("WSCNMS")) |>
+    rbind(
+      # TODO: + Chumash Proposed Action in onmsr
+      calcofi4r::cc_places |>
+        filter(key == "nms_cp") |>
+        mutate(
+          nms = "CPNMS") |>
+        select(
+          sanctuary = name,
+          nms, geom ) ) |>
+    arrange(nms)
+  # TODO: ∆ "Flower Garden BanksUpdated 03/23/21" to "Flower Garden Banks" in onmsr
+  sanctuaries$sanctuary[sanctuaries$nms == "FGBNMS"] = "Flower Garden Banks"
+}
+sanctuaries <- readRDS(sanctuaries_rds)
 
 # choose ERDDAP dataset ----
 ed_url   <- "https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.html"
