@@ -13,7 +13,9 @@ map_sanctuary <- function(ply){
       "Esri.OceanBasemap",
       options = providerTileOptions(
         variant = "Ocean/World_Ocean_Reference")) |>
-    addPolygons(data = ply)
+    addPolygons(
+      data  = ply,
+      label = ~sanctuary)
 }
 
 make_navbar <- function(){

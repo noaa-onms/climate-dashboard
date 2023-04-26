@@ -2,51 +2,30 @@
 title: "Sanctuaries Climate Dashboard"
 output: 
   flexdashboard::flex_dashboard:
-    theme:
-      bg: "#101010"
-      fg: "#FDF7F7" 
-      primary: "#ED79F9"
-      base_font:
-        google: Prompt
-      code_font:
-        google: JetBrains Mono
-    orientation: columns
-    vertical_layout: fill
+    self_contained: false
+    lib_dir: libs
+    includes:
+      in_header: "./_navbar.html"
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 library(flexdashboard)
-# Install thematic and un-comment for themed static plots (i.e., ggplot2)
-# thematic::thematic_rmd()
 ```
 
-Column {data-width=650 .tabset}
------------------------------------------------------------------------
+Navigate to the Sanctuary in the menu to the upper right.
 
-### Chart A
+### Map
 
 ```{r}
+librarian::shelf(
+  dplyr, glue, here, mapview, sf, stringr,
+  marinebon/extractr)
+# devtools::load_all("~/Github/marinebon/extractr")
+source(here("scripts/functions.R"))
 
+sanctuaries <- readRDS(here("data/sanctuaries.rds"))
+
+map_sanctuary(sanctuaries)
 ```
-
-### Chart B
-
-```{r}
-
-```
-
-Column {data-width=350}
------------------------------------------------------------------------
-
-### Chart C
-
-```{r}
-
-```
-
-### Chart D
-
-```{r}
-
-```
-
