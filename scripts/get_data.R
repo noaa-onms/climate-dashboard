@@ -82,7 +82,7 @@ for (i_ed in 1:length(ed_datasets)){ # i_ed = 3
     if (length(ed_dates_todo) == 0)
       next
 
-    message(glue("  have {nrow(d_csv)} dates in CSV, fetching {length(ed_dates_todo)} dates from ERDDAP"))
+    message(glue("  have {nrow(d_csv)} dates in CSV, fetching {length(ed_dates_todo)} dates from ERDDAP ~ {Sys.date()}"))
 
     dir_create(dir_tif)
     for (date_i in ed_dates){  # date_i = ed_dates[1]
