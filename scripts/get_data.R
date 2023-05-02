@@ -40,17 +40,7 @@ if (!file.exists(sanctuaries_rds)){
 sanctuaries <- readRDS(sanctuaries_rds)
 
 # ERDDAP datasets ----
-# TODO: setup ed_datasets as CSV, then read_csv()
-ed_datasets <- tibble(
-  url = "https://upwell.pfeg.noaa.gov/erddap/griddap/jplMURSST41mday.html",
-  var = "sst") |>
-  bind_rows(
-    tibble(
-      url   = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMWchlamday.html",
-      var   = "chlorophyll"),
-    tibble(
-      url = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.html",
-      var = "CRW_SST") )
+ed_datasets <- read_csv(here("data/datasets.csv"))
 
 # TODO: assign vars to sanctuaries since Coral Reef Watch not applicable to all
 
