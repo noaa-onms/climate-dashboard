@@ -2,12 +2,13 @@
 if (!"librarian" %in% installed.packages()[,1])
   install.packages("librarian")
 librarian::shelf(
-  dplyr, glue, here, sf, stringr,
+  dplyr, fs, glue, here, readr, sf, stringr, tibble,
   calcofi/calcofi4r, # temporarily to get Chumash
   noaa-onms/onmsR #, marinebon/extractr
   )
 # TODO: fix onmsr -- Warning message: replacing previous import ‘magrittr::extract’ by ‘tidyr::extract’ when loading ‘onmsR’
-devtools::load_all("~/Github/marinebon/extractr")
+devtools::load_all(here("../../marinebon/extractr"))
+options(readr.show_col_types = F)
 
 # notes ----
 
@@ -38,38 +39,79 @@ if (!file.exists(sanctuaries_rds)){
 }
 sanctuaries <- readRDS(sanctuaries_rds)
 
-# choose ERDDAP dataset ----
-ed_url   <- "https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.html"
-ed_var   <- "CRW_SST"
-ed_dates <- glue("{1986:2023}-01-01")
+# ERDDAP datasets ----
+# TODO: setup ed_datasets as CSV, then read_csv()
+ed_datasets <- tibble(
+  url = "https://upwell.pfeg.noaa.gov/erddap/griddap/jplMURSST41mday.html",
+  var = "sst") |>
+  bind_rows(
+    tibble(
+      url   = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMWchlamday.html",
+      var   = "chlorophyll"),
+    tibble(
+      url = "https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.html",
+      var = "CRW_SST") )
+
 # TODO: assign vars to sanctuaries since Coral Reef Watch not applicable to all
 
-ed <- extractr::get_ed_info(ed_url)
+# iterate over ERDDAP datasets ----
+for (i_ed in 1:length(ed_datasets)){ # i_ed = 3
 
-# iterate over sanctuaries ----
-for (i in 1:nrow(sanctuaries)){ # i = 1
-  ply <- slice(sanctuaries, i)
-  message(glue("sanctuary: {ply$nms} ~ {Sys.time()}"))
+  ed_row <- ed_datasets |> slice(i_ed)
+  message(glue("dataset: {ed_row$var} ~ {Sys.time()}"))
 
-  dir_tif <- here(glue("data/{ed_var}/{ply$nms}"))
-  ts_csv  <- here(glue("data/{ed_var}/{ply$nms}.csv"))
+  ed            <- extractr::get_ed_info(ed_row$url)
+  ed_date_range <- extractr::get_ed_dates(ed)
+  ed_dates      <- extractr::get_ed_dates_all(
+    ed, min(ed_date_range), max(ed_date_range))
 
-  dir.create(dir_tif, showWarnings = F, recursive = T)
+  # iterate over sanctuaries ----
+  for (i_s in 1:nrow(sanctuaries)){ # i_s = 1
+    ply <- slice(sanctuaries, i_s)
+    message(glue("  sanctuary: {ply$nms} ~ {Sys.time()}"))
 
-  for (date_i in ed_dates){  # date_i = ed_dates[1]
-    # devtools::load_all("~/Github/marinebon/extractr")
-    grds <- get_ed_grds(
-      ed, ed_var = ed_var, ply = ply, dir_tif = dir_tif,
-      date_beg = date_i, date_end = date_i,
-      verbose = T) # , date_beg = "2021-10-01")
+    dir_tif <- here(glue("data/{ed_row$var}/{ply$nms}"))
+    ts_csv  <- here(glue("data/{ed_row$var}/{ply$nms}.csv"))
+
+    dir_create(dir_tif)
+
+    if (file_exists(ts_csv)){
+      d_csv <- read_csv(ts_csv)
+      csv_dates <- d_csv |> pull(date)
+      ed_dates_todo <- setdiff(ed_dates, csv_dates) |>
+        as.Date(origin = "1970-01-01")
+    } else {
+      d_csv <- tibble(
+        lyr   = character(0),
+        date  = Date(0),
+        mean  = numeric(),
+        sd    = numeric(),
+        isNA  = numeric(),
+        notNA = numeric())
+      ed_dates_todo <- ed_dates
+    }
+
+    if (length(ed_dates_todo) == 0)
+      next
+
+    for (date_i in ed_dates){  # date_i = ed_dates[1]
+      grds <- get_ed_grds(
+        ed, ed_var = ed_row$var, ply = ply, dir_tif = dir_tif,
+        date_beg = date_i, date_end = date_i)
+    }
+    grds <- terra::rast(list.files(dir_tif, "tif$", full.names = T))
+
+    d_ed <- grds_to_ts(
+      grds, fxns = c("mean", "sd", "isNA", "notNA"),
+      verbose = T)
+
+    # merge newly fetched ERDDAP data with existing csv and write out
+    d_csv |>
+      bind_rows(d_ed) |>
+      arrange(date) |>
+      write_csv(ts_csv)
+
+    # remove space-consuming tifs
+    dir_delete(dir_tif)
   }
-  grds <- terra::rast(list.files(dir_tif, "tif$", full.names = T))
-  # mapview::mapView(grds[[1]])
-
-  ts <- grds_to_ts(
-    grds, fxns = c("mean", "sd", "isNA", "notNA"),
-    ts_csv = ts_csv, verbose = T)
-
-  # plot_ts(ts_csv, "mean", "sd", label = ed_var)
 }
-
