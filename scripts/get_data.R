@@ -4,10 +4,10 @@ if (!"librarian" %in% installed.packages()[,1])
 librarian::shelf(
   dplyr, fs, glue, here, lubridate, readr, sf, stringr, tibble,
   calcofi/calcofi4r, # temporarily to get Chumash
-  noaa-onms/onmsR,
-  marinebon/extractr)
+  noaa-onms/onmsR # ,marinebon/extractr
+  )
 # TODO: fix onmsr -- Warning message: replacing previous import ‘magrittr::extract’ by ‘tidyr::extract’ when loading ‘onmsR’
-# devtools::load_all(here("../../marinebon/extractr"))
+devtools::load_all(here("../../marinebon/extractr"))
 options(readr.show_col_types = F)
 
 # notes ----
@@ -82,14 +82,17 @@ for (i_ed in 1:length(ed_datasets)){ # i_ed = 3
     if (length(ed_dates_todo) == 0)
       next
 
-    message(glue("  have {nrow(d_csv)} dates in CSV, fetching {length(ed_dates_todo)} dates from ERDDAP ~ {Sys.date()}"))
+    message(glue("  have {nrow(d_csv)} dates in CSV, fetching {length(ed_dates_todo)} dates from ERDDAP ~ {Sys.time()}"))
 
     dir_create(dir_tif)
     for (date_i in ed_dates){  # date_i = ed_dates[1]
       if (class(date_i) == "numeric") date_i <- as.Date(date_i, origin = "1970-01-01")
+
+      # devtools::load_all(here("../../marinebon/extractr"))
       grds <- get_ed_grds(
         ed, ed_var = ed_row$var, ply = ply, dir_tif = dir_tif,
         date_beg = date_i, date_end = date_i, del_cache=T, verbose = F)
+      # plot(grds)
     }
     tifs <- list.files(dir_tif, "tif$", full.names = T)
     lyrs <- basename(tifs) |> str_replace("^grd_", "") |> str_replace("\\.tif$", "")
