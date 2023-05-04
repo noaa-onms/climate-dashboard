@@ -45,7 +45,8 @@ ed_datasets <- read_csv(here("data/datasets.csv"))
 # TODO: assign vars to sanctuaries since Coral Reef Watch not applicable to all
 
 # iterate over ERDDAP datasets ----
-for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 3
+# for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 3
+for (i_ed in c(3)){ # i_ed = 3
 
   ed_row <- ed_datasets |> slice(i_ed)
   message(glue("dataset: {ed_row$var} ~ {Sys.time()}"))
@@ -79,13 +80,23 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 3
       ed_dates_todo <- ed_dates
     }
 
+    tif_dates <- tibble(
+      tif = dir_ls(dir_tif, glob = "*.tif")) |>
+      mutate(
+        date = str_replace(
+          tif,
+          ".*([0-9]{4})\\.([0-9]{2})\\.([0-9]{2})\\.tif",
+          "\\1-\\2-\\3") |> as.Date()) |>
+      pull(date)
+    ed_dates_todo <- setdiff(ed_dates_todo, tif_dates)
+
     if (length(ed_dates_todo) == 0)
       next
 
-    message(glue("  have {nrow(d_csv)} dates in CSV, fetching {length(ed_dates_todo)} dates from ERDDAP ~ {Sys.time()}"))
+    message(glue("  have {nrow(d_csv)} dates in CSV, {length(tif_dates)} dates as TIFs, fetching {length(ed_dates_todo)} dates from ERDDAP ~ {Sys.time()}"))
 
     dir_create(dir_tif)
-    for (date_i in ed_dates){  # date_i = ed_dates[1]
+    for (date_i in ed_dates_todo){  # date_i = ed_dates[1]
       if (class(date_i) == "numeric") date_i <- as.Date(date_i, origin = "1970-01-01")
 
       # devtools::load_all(here("../../marinebon/extractr"))
