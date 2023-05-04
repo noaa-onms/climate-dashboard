@@ -45,7 +45,7 @@ ed_datasets <- read_csv(here("data/datasets.csv"))
 # TODO: assign vars to sanctuaries since Coral Reef Watch not applicable to all
 
 # iterate over ERDDAP datasets ----
-for (i_ed in 1:length(ed_datasets)){ # i_ed = 3
+for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 3
 
   ed_row <- ed_datasets |> slice(i_ed)
   message(glue("dataset: {ed_row$var} ~ {Sys.time()}"))
