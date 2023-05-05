@@ -4,10 +4,12 @@ if (!"librarian" %in% installed.packages()[,1])
 librarian::shelf(
   dplyr, fs, glue, here, lubridate, readr, sf, stringr, tibble,
   calcofi/calcofi4r, # temporarily to get Chumash
-  noaa-onms/onmsR # ,marinebon/extractr
+  noaa-onms/onmsR,
+  marinebon/extractr
   )
 # TODO: fix onmsr -- Warning message: replacing previous import ‘magrittr::extract’ by ‘tidyr::extract’ when loading ‘onmsR’
-devtools::load_all(here("../../marinebon/extractr"))
+# devtools::load_all(here("../../marinebon/extractr"))
+# devtools::install_local(here::here("../../marinebon/extractr"))
 options(readr.show_col_types = F)
 
 # notes ----
@@ -88,7 +90,8 @@ for (i_ed in c(3)){ # i_ed = 3
           ".*([0-9]{4})\\.([0-9]{2})\\.([0-9]{2})\\.tif",
           "\\1-\\2-\\3") |> as.Date()) |>
       pull(date)
-    ed_dates_todo <- setdiff(ed_dates_todo, tif_dates)
+    ed_dates_todo <- setdiff(ed_dates_todo, tif_dates) |> as.Date(origin = "1970-01-01")
+    # range(ed_dates_todo) # "2005-10-28" "2023-05-03"
 
     if (length(ed_dates_todo) == 0)
       next
@@ -105,9 +108,17 @@ for (i_ed in c(3)){ # i_ed = 3
         date_beg = date_i, date_end = date_i, del_cache=T, verbose = F)
       # plot(grds)
     }
+    # rm /share/github/noaa-onms/climate-dashboard/data/CRW_SST/CBNMS/grd_CRW_SST_1996.05.14.tif
+    # rm /share/github/noaa-onms/climate-dashboard/data/CRW_SST/CBNMS/grd_CRW_SST_1996.05.22.tif
+
     tifs <- list.files(dir_tif, "tif$", full.names = T)
+
+    # d_csv <- read_csv(ts_csv)
+    # tifs <- tifs[6001:7506]
+    # message(glue("length(tifs): {length(tifs)}"))
+
     lyrs <- basename(tifs) |> str_replace("^grd_", "") |> str_replace("\\.tif$", "")
-    grds <- terra::rast(tifs)
+    grds <- terra::rast(tifs) # maximum seems to be 4K files
     names(grds) <- lyrs
 
     d_ed <- grds_to_ts(
