@@ -45,7 +45,7 @@ write_metadata_md <- function(
 }
 ```
 
-# Map {.sidebar data-width=400}
+# Map {.sidebar data-width=200}
 
 ```{r}
 sanctuaries |>
