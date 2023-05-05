@@ -99,23 +99,43 @@ for (i_ed in c(3)){ # i_ed = 3
     message(glue("  have {nrow(d_csv)} dates in CSV, {length(tif_dates)} dates as TIFs, fetching {length(ed_dates_todo)} dates from ERDDAP ~ {Sys.time()}"))
 
     dir_create(dir_tif)
-    for (date_i in ed_dates_todo){  # date_i = ed_dates[1]
-      if (class(date_i) == "numeric") date_i <- as.Date(date_i, origin = "1970-01-01")
+    for (i_d in 1:length(ed_dates_todo)){  # date_i = ed_dates[1]
+      date_i = ed_dates_todo[i_d]
 
-      # devtools::load_all(here("../../marinebon/extractr"))
+      if (class(date_i) == "numeric") date_i <- as.Date(date_i, origin = "1970-01-01")
+      message(glue("date_i: {date_i}"))
+
       grds <- get_ed_grds(
         ed, ed_var = ed_row$var, ply = ply, dir_tif = dir_tif,
         date_beg = date_i, date_end = date_i, del_cache=T, verbose = F)
-      # plot(grds)
+
+      # every 1,000 dates load and refresh
+      if (i_d %% 10){
+
+        tifs <- list.files(dir_tif, "tif$", full.names = T)
+        lyrs <- basename(tifs) |> str_replace("^grd_", "") |> str_replace("\\.tif$", "")
+        grds <- terra::rast(tifs) # maximum seems to be 4K files
+        names(grds) <- lyrs
+
+        d_ed <- grds_to_ts(
+          grds, fxns = c("mean", "sd", "isNA", "notNA"),
+          verbose = T)
+
+        # merge newly fetched ERDDAP data with existing csv and write out
+        d_csv |>
+          bind_rows(d_ed) |>
+          # TODO: remove duplicates
+          arrange(date) |>
+          write_csv(ts_csv)
+
+        # refresh
+        d_csv <- read_csv(ts_csv)
+        dir_delete(dir_tif)
+        dir_create(dir_tif)
+      }
     }
-    # rm /share/github/noaa-onms/climate-dashboard/data/CRW_SST/CBNMS/grd_CRW_SST_1996.05.14.tif
-    # rm /share/github/noaa-onms/climate-dashboard/data/CRW_SST/CBNMS/grd_CRW_SST_1996.05.22.tif
 
     tifs <- list.files(dir_tif, "tif$", full.names = T)
-
-    # d_csv <- read_csv(ts_csv)
-    # tifs <- tifs[6001:7506]
-    # message(glue("length(tifs): {length(tifs)}"))
 
     lyrs <- basename(tifs) |> str_replace("^grd_", "") |> str_replace("\\.tif$", "")
     grds <- terra::rast(tifs) # maximum seems to be 4K files
@@ -128,8 +148,10 @@ for (i_ed in c(3)){ # i_ed = 3
     # merge newly fetched ERDDAP data with existing csv and write out
     d_csv |>
       bind_rows(d_ed) |>
+      # TODO: remove duplicates
       arrange(date) |>
       write_csv(ts_csv)
+    d_csv <- read_csv(ts_csv)
 
     # remove space-consuming tifs
     dir_delete(dir_tif)
