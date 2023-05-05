@@ -27,19 +27,19 @@ librarian::shelf(
 source(here("scripts/functions.R"))
 
 sanctuaries <- readRDS(here("data/sanctuaries.rds"))
+datasets <- read_csv(here("data/datasets.csv"))
+# TODO: add y_label, ∆ height CRW_SST
 
-write_metadata_md <- function(
-    dataset_var, sanctuary_nms,
-    datasets_csv = here::here("data/datasets.csv")){
+write_metadata <- function(
+    sanctuary_nms, dataset_var, dataset_url,
+    prefix = "", suffix = ""){
 
-  dataset_url <- read_csv(datasets_csv) |> 
-    filter(var == !!dataset_var) |> 
-    pull(url)
-  
   cat(glue('
   <details>
   <summary><span style="color: #737373; font-size: 12px">Metadata</span></summary>
-  The ERDDAP dataset for [{dataset_var}](dataset_url) was extracted using [get_data.R](https://github.com/noaa-onms/climate-dashboard/blob/main/scripts/get_data.R) for the {params$sanctuary} polygon and output to [{params$nms}.csv](https://raw.githubusercontent.com/noaa-onms/climate-dashboard/main/data/{dataset_var}/{params$nms}.csv), which gets visualized below using [`extractr::plot_ts()`](https://marinebon.github.io/extractr/reference/plot_ts.html).
+  {prefix}
+  The ERDDAP dataset for [{dataset_var}]({dataset_url}) was extracted using [get_data.R](https://github.com/noaa-onms/climate-dashboard/blob/main/scripts/get_data.R) for the {params$sanctuary} polygon and output to [{params$nms}.csv](https://raw.githubusercontent.com/noaa-onms/climate-dashboard/main/data/{dataset_var}/{params$nms}.csv), which gets visualized below using [`extractr::plot_ts()`](https://marinebon.github.io/extractr/reference/plot_ts.html).
+  {suffix}
   </details> 
   '))
 }
@@ -59,42 +59,48 @@ sanctuaries |>
 
 ```{r, results='asis'}
 ds_var <- "sst"
-write_metadata_md(ds_var, params$nms)
+ds <- filter(datasets, var == !!ds_var)
+write_metadata(params$nms, ds_var, ds$url)
 ```
     
 ```{r}
 ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
-plot_ts(ts_csv, fld_sd = "sd", color = "red")
+plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
 ```
 
 ### Chlorophyll {data-height=300}
     
 ```{r, results='asis'}
 ds_var <- "chlorophyll"
-write_metadata_md(ds_var, params$nms)
+ds <- filter(datasets, var == !!ds_var)
+write_metadata(params$nms, ds_var, ds$url)
 ```
 
 ```{r}
 ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
-plot_ts(ts_csv, fld_sd = "sd", color = "green")
+plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
 ```
 
 ### Coral Reef Watch {data-height=300}
 
 ```{r, results='asis'}
 ds_var <- "CRW_SST"
-write_metadata_md(ds_var, params$nms)
+ds <- filter(datasets, var == !!ds_var)
+
+pfx <- '
+  <details>
+  <summary>
+  <span style="color: #dc3545;font-size: 12px">Dataset Incomplete</span></summary>
+  Only the first of the year for this daily dataset was consistently fetched across sanctuaries so far.
+  </details>'
+write_metadata(params$nms, ds_var, ds$url, pfx)
 ```
 
-<details>
-<summary>
-  <span style="color: #dc3545;font-size: 12px">Dataset Incomplete</span></summary>
-Only the first of the year for this daily dataset was consistently fetched across sanctuaries so far.
-</details> 
+
 
 ```{r}
 ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
-plot_ts(ts_csv, fld_sd = "sd")
+plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
 ```
 
 # Physical-chemical
