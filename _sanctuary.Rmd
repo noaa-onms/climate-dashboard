@@ -38,8 +38,8 @@ write_metadata_md <- function(
   
   cat(glue('
   <details>
-  <summary>Metadata</summary>
-  The ERDDAP dataset for [{dataset_var}](dataset_url) was extracted using [get_data.R](https://github.com/noaa-onms/climate-dashboard/blob/main/scripts/get_data.R) for the {params$sanctuary} polygon and output to [{params$nms}.csv](https://raw.githubusercontent.com/noaa-onms/climate-dashboard/main/data/{dataset_var}/{params$nms}.csv), which gets visualized above using [`extractr::plot_ts()`](https://marinebon.github.io/extractr/reference/plot_ts.html).
+  <summary><span style="color: #737373; font-size: 12px">Metadata</span></summary>
+  The ERDDAP dataset for [{dataset_var}](dataset_url) was extracted using [get_data.R](https://github.com/noaa-onms/climate-dashboard/blob/main/scripts/get_data.R) for the {params$sanctuary} polygon and output to [{params$nms}.csv](https://raw.githubusercontent.com/noaa-onms/climate-dashboard/main/data/{dataset_var}/{params$nms}.csv), which gets visualized below using [`extractr::plot_ts()`](https://marinebon.github.io/extractr/reference/plot_ts.html).
   </details> 
   '))
 }
@@ -87,7 +87,8 @@ write_metadata_md(ds_var, params$nms)
 ```
 
 <details>
-<summary>Dataset Incomplete</summary>
+<summary>
+  <span style="color: #dc3545;font-size: 12px">Dataset Incomplete</span></summary>
 Only the first of the year for this daily dataset was consistently fetched across sanctuaries so far.
 </details> 
 
