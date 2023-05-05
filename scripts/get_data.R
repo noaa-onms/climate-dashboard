@@ -66,6 +66,7 @@ for (i_ed in c(3)){ # i_ed = 3
     dir_tif <- here(glue("data/{ed_row$var}/{ply$nms}"))
     ts_csv  <- here(glue("data/{ed_row$var}/{ply$nms}.csv"))
 
+    dir_create(dir_tif)
     if (file_exists(ts_csv)){
       d_csv <- read_csv(ts_csv)
       csv_dates <- d_csv |> pull(date)
@@ -103,14 +104,14 @@ for (i_ed in c(3)){ # i_ed = 3
       date_i = ed_dates_todo[i_d]
 
       if (class(date_i) == "numeric") date_i <- as.Date(date_i, origin = "1970-01-01")
-      message(glue("date_i: {date_i}"))
+      # message(glue("date_i: {date_i}"))
 
       grds <- get_ed_grds(
         ed, ed_var = ed_row$var, ply = ply, dir_tif = dir_tif,
         date_beg = date_i, date_end = date_i, del_cache=T, verbose = F)
 
       # every 1,000 dates load and refresh
-      if (i_d %% 10){
+      if (i_d %% 1000 == 0){
 
         tifs <- list.files(dir_tif, "tif$", full.names = T)
         lyrs <- basename(tifs) |> str_replace("^grd_", "") |> str_replace("\\.tif$", "")
