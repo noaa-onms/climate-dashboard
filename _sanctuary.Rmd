@@ -1,14 +1,18 @@
 ---
-title: "Sanctuaries Climate Dashboard"
+title: "`r params$sanctuary`"
 output: 
   flexdashboard::flex_dashboard:
+    vertical_layout: scroll
     self_contained: false
     lib_dir: "docs/libs"
     includes:
       in_header: "./_navbar.html"
+    css: "_style.css"
 params:
   nms: "CBNMS"
   sanctuary: "Cordell Bank"
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup}
@@ -17,73 +21,115 @@ params:
 #   sanctuary = "Cordell Bank")
 
 librarian::shelf(
-  dplyr, glue, here, mapview, sf, stringr,
+  dplyr, glue, here, mapview, readr, sf, stringr,
   marinebon/extractr)
 # devtools::load_all("~/Github/marinebon/extractr")
 source(here("scripts/functions.R"))
 
 sanctuaries <- readRDS(here("data/sanctuaries.rds"))
+
+write_metadata_md <- function(
+    dataset_var, sanctuary_nms,
+    datasets_csv = here::here("data/datasets.csv")){
+
+  dataset_url <- read_csv(datasets_csv) |> 
+    filter(var == !!dataset_var) |> 
+    pull(url)
+  
+  cat(glue('
+  <details>
+  <summary><span style="color: #737373; font-size: 12px">Metadata</span></summary>
+  The ERDDAP dataset for [{dataset_var}](dataset_url) was extracted using [get_data.R](https://github.com/noaa-onms/climate-dashboard/blob/main/scripts/get_data.R) for the {params$sanctuary} polygon and output to [{params$nms}.csv](https://raw.githubusercontent.com/noaa-onms/climate-dashboard/main/data/{dataset_var}/{params$nms}.csv), which gets visualized below using [`extractr::plot_ts()`](https://marinebon.github.io/extractr/reference/plot_ts.html).
+  </details> 
+  '))
+}
 ```
 
-# `r params$sanctuary`
-
-## Map {.sidebar data-width=400}
+# Map {.sidebar data-width=200}
 
 ```{r}
-sanctuaries |> 
-  filter(sanctuary == params$sanctuary) |> 
+sanctuaries |>
+  filter(sanctuary == params$sanctuary) |>
   map_sanctuary()
 ```
 
-## Column {.tabset}
+# Climatological
 
-### Climatological
+### Sea Surface Temperature {data-height=300}
 
-#### Coral Reef Watch
+```{r, results='asis'}
+ds_var <- "sst"
+write_metadata_md(ds_var, params$nms)
+```
     
 ```{r}
-ts_csv <- here(glue("data/CRW_SST/{params$nms}.csv"))
+ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
+plot_ts(ts_csv, fld_sd = "sd", color = "red")
+```
+
+### Chlorophyll {data-height=300}
+    
+```{r, results='asis'}
+ds_var <- "chlorophyll"
+write_metadata_md(ds_var, params$nms)
+```
+
+```{r}
+ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
+plot_ts(ts_csv, fld_sd = "sd", color = "green")
+```
+
+### Coral Reef Watch {data-height=300}
+
+```{r, results='asis'}
+ds_var <- "CRW_SST"
+write_metadata_md(ds_var, params$nms)
+```
+
+<details>
+<summary>
+  <span style="color: #dc3545;font-size: 12px">Dataset Incomplete</span></summary>
+Only the first of the year for this daily dataset was consistently fetched across sanctuaries so far.
+</details> 
+
+```{r}
+ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
 plot_ts(ts_csv, fld_sd = "sd")
 ```
-    
-#### Chart C.2
+
+# Physical-chemical
+
+### Chart P.1
 
 ```{r}
 ```
 
-### Physical-chemical
-
-#### Chart P.1
-
-```{r}
-```
-
-#### Chart P.2
+### Chart P.2
 
 ```{r}
 ```
 
 
-### Biological
+# Biological
 
-#### Chart B.1
-
-```{r}
-```
-
-#### Chart B.2
+### Chart B.1
 
 ```{r}
 ```
 
-### Human Dimensions
-
-#### Chart H.1
+### Chart B.2
 
 ```{r}
 ```
 
-#### Chart H.2
+## Human Dimensions
+
+### Chart H.1
+
+```{r}
+```
+
+### Chart H.2
 
 ```{r}
 ```
