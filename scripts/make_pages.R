@@ -27,6 +27,7 @@ render(
   here("index.Rmd"),
   output_file = here(glue("docs/index.html")))
 
-
+# copy dependent files
+fs::file_copy("_style.css", here("docs/_style.css"))
 
 
