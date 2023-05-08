@@ -2,7 +2,7 @@
 if (!"librarian" %in% installed.packages()[,1])
   install.packages("librarian")
 librarian::shelf(
-  dplyr, fs, glue, here, lubridate, readr, sf, stringr, tibble,
+  dplyr, fs, glue, here, lubridate, purrr, readr, sf, stringr, terra, tibble, tidyr,
   calcofi/calcofi4r, # temporarily to get Chumash
   noaa-onms/onmsR,
   marinebon/extractr
@@ -59,9 +59,10 @@ for (i_ed in c(3)){ # i_ed = 3
     ed, min(ed_date_range), max(ed_date_range))
 
   # iterate over sanctuaries ----
-  for (i_s in 1:nrow(sanctuaries)){ # i_s = 1
+  for (i_s in 1:nrow(sanctuaries)){ # i_s = 2
     ply <- slice(sanctuaries, i_s)
     message(glue("  sanctuary: {ply$nms} ~ {Sys.time()}"))
+    bb <- sf::st_bbox(ply)
 
     dir_tif <- here(glue("data/{ed_row$var}/{ply$nms}"))
     ts_csv  <- here(glue("data/{ed_row$var}/{ply$nms}.csv"))
@@ -91,8 +92,11 @@ for (i_ed in c(3)){ # i_ed = 3
           ".*([0-9]{4})\\.([0-9]{2})\\.([0-9]{2})\\.tif",
           "\\1-\\2-\\3") |> as.Date()) |>
       pull(date)
-    ed_dates_todo <- setdiff(ed_dates_todo, tif_dates) |> as.Date(origin = "1970-01-01")
-    # range(ed_dates_todo) # "2005-10-28" "2023-05-03"
+    ed_dates_todo <- setdiff(ed_dates_todo, tif_dates)
+    # range(ed_dates_todo) # "1996-03-25" "2023-05-07"
+
+    if (class(ed_dates_todo) == "numeric")
+      ed_dates_todo <- as.Date(ed_dates_todo, origin = "1970-01-01")
 
     if (length(ed_dates_todo) == 0)
       next
@@ -100,61 +104,87 @@ for (i_ed in c(3)){ # i_ed = 3
     message(glue("  have {nrow(d_csv)} dates in CSV, {length(tif_dates)} dates as TIFs, fetching {length(ed_dates_todo)} dates from ERDDAP ~ {Sys.time()}"))
 
     dir_create(dir_tif)
-    for (i_d in 1:length(ed_dates_todo)){  # date_i = ed_dates[1]
-      date_i = ed_dates_todo[i_d]
+    n_dates <- 1000
+    for (i_beg in seq(1, length(ed_dates_todo), by = n_dates)){  # i_beg = 1
 
-      if (class(date_i) == "numeric") date_i <- as.Date(date_i, origin = "1970-01-01")
-      # message(glue("date_i: {date_i}"))
+      date_beg <- ed_dates_todo[i_beg]
+      i_end <- min(c(i_beg + n_dates, length(ed_dates_todo)))
+      date_end <-ed_dates_todo[i_end]
+      message(glue("  {i_beg} to {i_end} of {length(ed_dates_todo)} dates ~ {Sys.time()}"))
 
-      grds <- get_ed_grds(
-        ed, ed_var = ed_row$var, ply = ply, dir_tif = dir_tif,
-        date_beg = date_i, date_end = date_i, del_cache=T, verbose = F)
+      nc <- try(rerddap::griddap(
+        attr(ed, "datasetid"),
+        fields    = ed_row$var,
+        url       = ed$base_url,
+        longitude = c(bb["xmin"], bb["xmax"]),
+        latitude  = c(bb["ymin"], bb["ymax"]),
+        time      = c(date_beg, date_end),
+        fmt       = "nc"))
 
-      # every 1,000 dates load and refresh
-      if (i_d %% 1000 == 0){
+      if ("try-error" %in% class(nc)){
+        stop(glue("
+        Problem fetching data from ERDDAP server using:
+          rerddap::griddap(
+            x         = '{attr(ed_info, 'datasetid')}',
+            fields    = '{ed_var}',
+            url       = '{ed_info$base_url}',
+            longitude = c({bb['xmin']}, {bb['xmax']}),
+            latitude  = c({bb['ymin']}, {bb['ymax']}),
+            time      = c('{date}', '{date}'))"))}
 
-        tifs <- list.files(dir_tif, "tif$", full.names = T)
-        lyrs <- basename(tifs) |> str_replace("^grd_", "") |> str_replace("\\.tif$", "")
-        grds <- terra::rast(tifs) # maximum seems to be 4K files
-        names(grds) <- lyrs
-
-        d_ed <- grds_to_ts(
-          grds, fxns = c("mean", "sd", "isNA", "notNA"),
-          verbose = T)
-
-        # merge newly fetched ERDDAP data with existing csv and write out
-        d_csv |>
-          bind_rows(d_ed) |>
-          # TODO: remove duplicates
-          arrange(date) |>
-          write_csv(ts_csv)
-
-        # refresh
-        d_csv <- read_csv(ts_csv)
-        dir_delete(dir_tif)
-        dir_create(dir_tif)
+      if (all(c("lon", "lat") %in% colnames(nc$data))){
+        x <- tibble(nc$data) %>%
+          mutate(
+            # round b/c of uneven intervals
+            #   unique(tbl$lon) %>% sort() %>% diff() %>% unique() %>% as.character()
+            #     0.0499954223632812 0.0500030517578125
+            #   TODO: inform Maria/Joaquin about uneven intervals
+            lon  = round(lon, 4),
+            lat  = round(lat, 4),
+            date = as.Date(time, "%Y-%m-%dT12:00:00Z")) %>%
+          select(-time)
+      } else if (all(c("longitude", "latitude") %in% colnames(nc$data))){
+        x <- tibble(nc$data) %>%
+          mutate(
+            lon  = round(longitude, 4),
+            lat  = round(latitude,  4),
+            date = as.Date(time, "%Y-%m-%dT12:00:00Z")) %>%
+          select(-time, -longitude, -latitude)
+      } else {
+        stop("Expected lon/lat or longitude/latitude in ERDDAP dataset.")
       }
-    }
+      # x0 <- x
+      # x <- x0
+      # x <- x  %>%
+      #   select(-longitude, -latitude)
+      #
+      # dates <- unique(x$date)[1:3]
+      # 631,890 × 4
+      # x <- x |>
+      #   filter(date %in% dates)
+      # 1,890 × 4
 
-    tifs <- list.files(dir_tif, "tif$", full.names = T)
+      x <- x |>
+        group_by(date) |>
+        nest(data = all_of(c("lon", "lat", ed_row$var))) |>
+        mutate(
+          r = map(data, rast))
+      stk <- rast(x$r)
+      names(stk) <- glue("{ed_row$var}_{as.character(x$date) |> str_replace_all('-','.')}")
+      crs(stk) <- "EPSG:4326"
+      d_ed <- grds_to_ts(
+        stk, fxns = c("mean", "sd", "isNA", "notNA"),
+        verbose = T)
 
-    lyrs <- basename(tifs) |> str_replace("^grd_", "") |> str_replace("\\.tif$", "")
-    grds <- terra::rast(tifs) # maximum seems to be 4K files
-    names(grds) <- lyrs
+      # merge newly fetched ERDDAP data with existing csv and write out
+      d_csv |>
+        bind_rows(d_ed) |>
+        arrange(date) |>
+        filter(
+          !duplicated(date)) |>
+        write_csv(ts_csv)
 
-    d_ed <- grds_to_ts(
-      grds, fxns = c("mean", "sd", "isNA", "notNA"),
-      verbose = T)
+    } # loop dates
+  } # loop sanctuaries
+} # loop datasets
 
-    # merge newly fetched ERDDAP data with existing csv and write out
-    d_csv |>
-      bind_rows(d_ed) |>
-      # TODO: remove duplicates
-      arrange(date) |>
-      write_csv(ts_csv)
-    d_csv <- read_csv(ts_csv)
-
-    # remove space-consuming tifs
-    dir_delete(dir_tif)
-  }
-}
