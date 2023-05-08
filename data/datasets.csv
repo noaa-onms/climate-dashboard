@@ -1,4 +1,4 @@
-url,var
-https://upwell.pfeg.noaa.gov/erddap/griddap/jplMURSST41mday.html,sst
-https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chlamday.html,chlorophyll
-https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.html,CRW_SST
+url,var,plot_label,plot_color
+https://upwell.pfeg.noaa.gov/erddap/griddap/jplMURSST41mday.html,sst,Temperature (°C),red
+https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chlamday.html,chlorophyll,Chlorophyll a (mg/m³),green
+https://coastwatch.pfeg.noaa.gov/erddap/griddap/NOAA_DHW.html,CRW_SST,Temperature (°C),red
