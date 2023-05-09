@@ -64,10 +64,8 @@ for (i_ed in c(3)){ # i_ed = 3
     message(glue("  sanctuary: {ply$nms} ~ {Sys.time()}"))
     bb <- sf::st_bbox(ply)
 
-    dir_tif <- here(glue("data/{ed_row$var}/{ply$nms}"))
     ts_csv  <- here(glue("data/{ed_row$var}/{ply$nms}.csv"))
 
-    dir_create(dir_tif)
     if (file_exists(ts_csv)){
       d_csv <- read_csv(ts_csv)
       csv_dates <- d_csv |> pull(date)
@@ -84,33 +82,23 @@ for (i_ed in c(3)){ # i_ed = 3
       ed_dates_todo <- ed_dates
     }
 
-    tif_dates <- tibble(
-      tif = dir_ls(dir_tif, glob = "*.tif")) |>
-      mutate(
-        date = str_replace(
-          tif,
-          ".*([0-9]{4})\\.([0-9]{2})\\.([0-9]{2})\\.tif",
-          "\\1-\\2-\\3") |> as.Date()) |>
-      pull(date)
-    ed_dates_todo <- setdiff(ed_dates_todo, tif_dates)
-    # range(ed_dates_todo) # "1996-03-25" "2023-05-07"
-
     if (class(ed_dates_todo) == "numeric")
       ed_dates_todo <- as.Date(ed_dates_todo, origin = "1970-01-01")
 
     if (length(ed_dates_todo) == 0)
       next
 
-    message(glue("  have {nrow(d_csv)} dates in CSV, {length(tif_dates)} dates as TIFs, fetching {length(ed_dates_todo)} dates from ERDDAP ~ {Sys.time()}"))
+    ed_dates_todo <- ed_dates[
+      ed_dates >= min(ed_dates_todo) &
+      ed_dates <= max(ed_dates_todo)]
 
-    dir_create(dir_tif)
-    n_dates <- 1000
+    n_dates <- 500
     for (i_beg in seq(1, length(ed_dates_todo), by = n_dates)){  # i_beg = 1
 
       date_beg <- ed_dates_todo[i_beg]
       i_end <- min(c(i_beg + n_dates, length(ed_dates_todo)))
       date_end <-ed_dates_todo[i_end]
-      message(glue("  {i_beg} to {i_end} of {length(ed_dates_todo)} dates ~ {Sys.time()}"))
+      message(glue("    {i_beg}:{date_beg} to {i_end}:{date_end} of {length(ed_dates_todo)} dates ~ {Sys.time()}"))
 
       nc <- try(rerddap::griddap(
         attr(ed, "datasetid"),
@@ -125,12 +113,12 @@ for (i_ed in c(3)){ # i_ed = 3
         stop(glue("
         Problem fetching data from ERDDAP server using:
           rerddap::griddap(
-            x         = '{attr(ed_info, 'datasetid')}',
-            fields    = '{ed_var}',
-            url       = '{ed_info$base_url}',
+            x         = '{attr(ed, 'datasetid')}',
+            fields    = '{ed_row$var}',
+            url       = '{ed$base_url}',
             longitude = c({bb['xmin']}, {bb['xmax']}),
             latitude  = c({bb['ymin']}, {bb['ymax']}),
-            time      = c('{date}', '{date}'))"))}
+            time      = c('{date_beg}', '{date_end}'))"))}
 
       if (all(c("lon", "lat") %in% colnames(nc$data))){
         x <- tibble(nc$data) %>%
@@ -153,16 +141,6 @@ for (i_ed in c(3)){ # i_ed = 3
       } else {
         stop("Expected lon/lat or longitude/latitude in ERDDAP dataset.")
       }
-      # x0 <- x
-      # x <- x0
-      # x <- x  %>%
-      #   select(-longitude, -latitude)
-      #
-      # dates <- unique(x$date)[1:3]
-      # 631,890 × 4
-      # x <- x |>
-      #   filter(date %in% dates)
-      # 1,890 × 4
 
       x <- x |>
         group_by(date) |>
@@ -177,6 +155,17 @@ for (i_ed in c(3)){ # i_ed = 3
         verbose = T)
 
       # merge newly fetched ERDDAP data with existing csv and write out
+      if (file_exists(ts_csv)){
+        d_csv <- read_csv(ts_csv)
+      } else {
+        d_csv <- tibble(
+          lyr   = character(0),
+          date  = Date(0),
+          mean  = numeric(0),
+          sd    = numeric(0),
+          isNA  = numeric(0),
+          notNA = numeric(0))
+      }
       d_csv |>
         bind_rows(d_ed) |>
         arrange(date) |>
