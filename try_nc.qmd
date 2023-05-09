@@ -1,0 +1,46 @@
+---
+title: "Try Climate Projections"
+format: html
+editor_options: 
+  chunk_output_type: console
+---
+
+## Quarto
+
+```{r}
+librarian::shelf(
+  dplyr, DT, ggplot2, glue, here, lubridate,
+  marinebon/extractr,
+  ncdf4, readr, rgdal, tibble, terra)
+
+nc_path <- here("data/Climate_projections/GR_CESM2LE_data_1850-2100_mean_stdev.nc")
+csv_path <- here("data/Climate_projections/GR_CESM2LE_data_1850-2100_mean_stdev.csv")
+yr_csv_path <- here("data/Climate_projections/GR_CESM2LE_data_1850-2100_mean_stdev_annual.csv")
+
+nc <- ncdf4::nc_open(nc_path)
+nc
+
+d <- tibble(
+  microseconds = ncvar_get(nc, "time") |> as.numeric(),
+  time         = microseconds/1000000 + ISOdatetime(1850,1,16,13,0,0) ,
+  date         = as.Date(time),
+  sst_mean     = ncvar_get(nc, "SST_mean") |> as.numeric(),
+  sst_sd       = ncvar_get(nc, "SST_stdev") |> as.numeric()) |> 
+  select(-microseconds, -time)
+write_csv(d, csv_path)
+
+datatable(d)
+
+plot_ts(csv_path, fld_avg = "sst_mean", fld_sd = "sst_sd")
+
+d_yr <- d |> 
+  mutate(
+    year = glue("{year(date)}-01-01") |> as.Date()) |> 
+  group_by(year) |> 
+  summarize(
+    sst_mean = mean(sst_mean),
+    sst_sd   = mean(sst_sd))
+write_csv(d_yr, yr_csv_path)
+
+plot_ts(yr_csv_path, fld_avg = "sst_mean", fld_sd = "sst_sd", fld_date = "year")
+```
