@@ -9,8 +9,8 @@ output:
       in_header: "./_navbar.html"
     css: "_style.css"
 params:
-  nms: "CBNMS"
-  sanctuary: "Cordell Bank"
+  nms: "GRNMS"
+  sanctuary: "Gray's Reef"
 editor_options: 
   chunk_output_type: console
 ---
@@ -54,6 +54,24 @@ sanctuaries |>
 ```
 
 # Climatological
+
+```{r, results='asis'}
+clim_csv <- glue(here("data/Climate_projections/{params$nms}_CESM2LE_data_1850-2100_mean_stdev_annual.csv"))
+if (file.exists(clim_csv))
+  cat(glue(
+  '### Sea Surface Temperature Annual Climate Projection {{data-height=300}}
+  
+  <details>
+  <summary><span style="color: #737373; font-size: 12px">Metadata</span></summary>
+  This climate forecast dataset [CESM2 Large Ensemble Community Project (LENS2) | Community Earth System Model](https://www.cesm.ucar.edu/community-projects/lens2) was provided by UCAR as netCDF4 files summarized to the sanctuary over time monthly since 1850 and out to 2100. These data were summarized annually and output to CSVs by [process_nc.R](https://github.com/noaa-onms/climate-dashboard/blob/main/scripts/process_nc.R).
+  </details> 
+  '))
+```
+
+```{r}
+#| eval: !expr file.exists(clim_csv)
+plot_ts(clim_csv, fld_avg = "sst_mean", fld_sd = "sst_sd", fld_date = "year")
+```
 
 ### Sea Surface Temperature {data-height=300}
 

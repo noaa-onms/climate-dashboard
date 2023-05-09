@@ -9,6 +9,7 @@ dir_create(here("docs"))
 
 sanctuaries <- readRDS(here("data/sanctuaries.rds")) |>
   arrange(sanctuary)
+
 for (i in 1:nrow(sanctuaries)){ # i = 1
   s <- slice(sanctuaries, i)
   out_html <- here(glue("docs/{s$nms}.html"))
