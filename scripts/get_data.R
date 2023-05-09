@@ -59,7 +59,9 @@ for (i_ed in c(3)){ # i_ed = 3
     ed, min(ed_date_range), max(ed_date_range))
 
   # iterate over sanctuaries ----
-  for (i_s in 1:nrow(sanctuaries)){ # i_s = 2
+  # for (i_s in 1:nrow(sanctuaries)){ # i_s = 2
+  for (i_s in 10:nrow(sanctuaries)){ # i_s = 2
+
     ply <- slice(sanctuaries, i_s)
     message(glue("  sanctuary: {ply$nms} ~ {Sys.time()}"))
     bb <- sf::st_bbox(ply)
@@ -109,6 +111,11 @@ for (i_ed in c(3)){ # i_ed = 3
         time      = c(date_beg, date_end),
         fmt       = "nc"))
 
+      # Error : Error {
+      #   code=500;
+      #   message="Internal Server Error: FileNotFoundException: /usr/local/erddap/cache/km/dhw_5km/b0b7_7e83_fd06_170688975_0 (No such file or directory)";
+      # }
+
       if ("try-error" %in% class(nc)){
         stop(glue("
         Problem fetching data from ERDDAP server using:
@@ -142,17 +149,37 @@ for (i_ed in c(3)){ # i_ed = 3
         stop("Expected lon/lat or longitude/latitude in ERDDAP dataset.")
       }
 
-      x <- x |>
-        group_by(date) |>
-        nest(data = all_of(c("lon", "lat", ed_row$var))) |>
-        mutate(
-          r = map(data, rast))
-      stk <- rast(x$r)
-      names(stk) <- glue("{ed_row$var}_{as.character(x$date) |> str_replace_all('-','.')}")
-      crs(stk) <- "EPSG:4326"
-      d_ed <- grds_to_ts(
-        stk, fxns = c("mean", "sd", "isNA", "notNA"),
-        verbose = T)
+      n_pts <- x |>
+        group_by(lon, lat) |>
+        summarize(n = n(), .groups = "drop") |>
+        nrow()
+
+      if (n_pts < 4){
+        # skip masking b/c rast() prob won't work
+        d_ed <- x |>
+          group_by(date) |>
+          summarize(
+            mean  = mean(.data[[ed_row$var]], na.rm=T),
+            sd    = sd(.data[[ed_row$var]], na.rm=T),
+            isNA  = is.na(.data[[ed_row$var]]) |> length(),
+            notNA = is.na(.data[[ed_row$var]]) |> length(),
+            .groups = "drop") |>
+          mutate(
+            lyr   = glue("{ed_row$var}_{as.character(date) |> str_replace_all('-','.')}")) |>
+          select(lyr, mean, sd, isNA, notNA)
+      } else {
+        x <- x |>
+          group_by(date) |>
+          nest(data = all_of(c("lon", "lat", ed_row$var))) |>
+          mutate(
+            r = map(data, rast))
+        stk <- rast(x$r)
+        names(stk) <- glue("{ed_row$var}_{as.character(x$date) |> str_replace_all('-','.')}")
+        crs(stk) <- "EPSG:4326"
+        d_ed <- grds_to_ts(
+          stk, fxns = c("mean", "sd", "isNA", "notNA"),
+          verbose = T)
+      }
 
       # merge newly fetched ERDDAP data with existing csv and write out
       if (file_exists(ts_csv)){
