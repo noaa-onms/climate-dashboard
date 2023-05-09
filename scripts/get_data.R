@@ -92,7 +92,7 @@ for (i_ed in c(3)){ # i_ed = 3
       ed_dates >= min(ed_dates_todo) &
       ed_dates <= max(ed_dates_todo)]
 
-    n_dates <- 1000
+    n_dates <- 500
     for (i_beg in seq(1, length(ed_dates_todo), by = n_dates)){  # i_beg = 1
 
       date_beg <- ed_dates_todo[i_beg]
