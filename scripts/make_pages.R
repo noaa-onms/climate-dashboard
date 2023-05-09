@@ -8,9 +8,9 @@ dir_delete(here("docs"))
 dir_create(here("docs"))
 
 sanctuaries <- readRDS(here("data/sanctuaries.rds")) |>
-  arrange(sanctuary) |>
-  filter(
-    nms %in% c("GRNMS","FKNMS","FGBNMS"))
+  arrange(sanctuary)
+  # filter(
+  #   nms %in% c("GRNMS","FKNMS","FGBNMS"))
 
 for (i in 1:nrow(sanctuaries)){ # i = 1
   s <- slice(sanctuaries, i)
