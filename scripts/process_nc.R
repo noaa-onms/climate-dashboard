@@ -5,7 +5,7 @@ librarian::shelf(
 
 sanctuaries_nms <- c("GRNMS","FKNMS","FGBNMS")
 
-for (nms in sanctuaries_nms){ # nms = sanctuaries_nms[2]
+for (nms in sanctuaries_nms){ # nms = sanctuaries_nms[1]
 
   nc_path     <- here(glue("data/Climate_projections/{nms}_CESM2LE_data_1850-2100_mean_stdev.nc"))
   csv_path    <- here(glue("data/Climate_projections/{nms}_CESM2LE_data_1850-2100_mean_stdev.csv"))
@@ -32,6 +32,7 @@ for (nms in sanctuaries_nms){ # nms = sanctuaries_nms[2]
       year = glue("{year(date)}-01-01") |> as.Date()) |>
     group_by(year) |>
     summarize(
+      # TODO: summarizing monthly to yearly; invalid to take mean of sd
       sst_mean = mean(sst_mean),
       sst_sd   = mean(sst_sd))
   write_csv(d_yr, yr_csv_path)
