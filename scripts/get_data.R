@@ -38,6 +38,7 @@ if (!file.exists(sanctuaries_rds)){
     arrange(nms)
   # TODO: ∆ "Flower Garden BanksUpdated 03/23/21" to "Flower Garden Banks" in onmsr
   sanctuaries$sanctuary[sanctuaries$nms == "FGBNMS"] = "Flower Garden Banks"
+  saveRDS(sanctuaries, sanctuaries_rds)
 }
 sanctuaries <- readRDS(sanctuaries_rds)
 

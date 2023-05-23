@@ -9,8 +9,10 @@ output:
       in_header: "./_navbar.html"
     css: "_style.css"
 params:
-  nms: "GRNMS"
-  sanctuary: "Gray's Reef"
+  # nms: "GRNMS"
+  # sanctuary: "Gray's Reef"
+  nms: "MNMS"
+  sanctuary: "Monitor"
 editor_options: 
   chunk_output_type: console
 ---
@@ -27,7 +29,13 @@ librarian::shelf(
 source(here("scripts/functions.R"))
 
 sanctuaries <- readRDS(here("data/sanctuaries.rds"))
+
+# TODO: change "datasets" to "variables"
 datasets <- read_csv(here("data/datasets.csv"))
+datasets_ed <- datasets |> 
+  filter(type == "erddap")
+datasets_nc <- datasets |> 
+  filter(type == "nc")
 # TODO: add y_label, ∆ height CRW_SST
 
 write_metadata <- function(
@@ -48,6 +56,10 @@ write_metadata <- function(
 # Map {.sidebar data-width=200}
 
 ```{r}
+# params <- list(
+#   nms = "GRNMS",
+#   sanctuary = "Gray's Reef")
+
 sanctuaries |>
   filter(sanctuary == params$sanctuary) |>
   map_sanctuary()
@@ -55,29 +67,11 @@ sanctuaries |>
 
 # Climatological
 
-```{r, results='asis'}
-clim_csv <- glue(here("data/Climate_projections/{params$nms}_CESM2LE_data_1850-2100_mean_stdev_annual.csv"))
-if (file.exists(clim_csv))
-  cat(glue(
-  '### Sea Surface Temperature Annual Climate Projection {{data-height=300}}
-  
-  <details>
-  <summary><span style="color: #737373; font-size: 12px">Metadata</span></summary>
-  This climate forecast dataset [CESM2 Large Ensemble Community Project (LENS2) | Community Earth System Model](https://www.cesm.ucar.edu/community-projects/lens2) was provided by UCAR as netCDF4 files summarized to the sanctuary over time monthly since 1850 and out to 2100. These data were summarized annually and output to CSVs by [process_nc.R](https://github.com/noaa-onms/climate-dashboard/blob/main/scripts/process_nc.R).
-  </details> 
-  '))
-```
-
-```{r}
-#| eval: !expr file.exists(clim_csv)
-plot_ts(clim_csv, fld_avg = "sst_mean", fld_sd = "sst_sd", fld_date = "year")
-```
-
 ### Sea Surface Temperature {data-height=300}
 
 ```{r, results='asis'}
 ds_var <- "sst"
-ds <- filter(datasets, var == !!ds_var)
+ds <- filter(datasets_ed, var == !!ds_var)
 write_metadata(params$nms, ds_var, ds$url)
 ```
     
@@ -90,7 +84,7 @@ plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
     
 ```{r, results='asis'}
 ds_var <- "chlorophyll"
-ds <- filter(datasets, var == !!ds_var)
+ds <- filter(datasets_ed, var == !!ds_var)
 write_metadata(params$nms, ds_var, ds$url)
 ```
 
@@ -103,7 +97,11 @@ plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
 
 ```{r, results='asis'}
 ds_var <- "CRW_SST"
-ds <- filter(datasets, var == !!ds_var)
+ds <- filter(datasets_ed, var == !!ds_var)
+ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
+
+# TODO: resolve issues with Monitor being too small to have data
+has_data <- sum(!is.na(read_csv(ts_csv, show_col_types=F) |> pull(mean))) > 0
 
 pfx <- '
   <details>
@@ -111,14 +109,74 @@ pfx <- '
   <span style="color: #dc3545;font-size: 12px">Dataset Incomplete</span></summary>
   Only the first of the year for this daily dataset was consistently fetched across sanctuaries so far.
   </details>'
-write_metadata(params$nms, ds_var, ds$url, pfx)
+if (has_data)
+  write_metadata(params$nms, ds_var, ds$url, pfx)
+```
+
+```{r}
+#| eval: !expr has_data
+plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
+```
+
+# Forecast
+
+```{r, results='asis'}
+clim_csv <- glue(here("data/Climate_projections/{params$nms}_CESM2LE_data_1850-2100_mean_stdev_annual.csv"))
+
+var <- "sst"
+if (file.exists(clim_csv))
+  nc_meta(var)
+```
+
+```{r}
+#| eval: !expr file.exists(clim_csv)
+nc_plot(var)
+```
+
+```{r, results='asis'}
+var <- "chl"
+if (file.exists(clim_csv))
+  nc_meta(var)
+```
+
+```{r}
+#| eval: !expr file.exists(clim_csv)
+nc_plot(var)
+```
+
+```{r, results='asis'}
+var <- "ph"
+if (file.exists(clim_csv))
+  nc_meta(var)
+```
+
+```{r}
+#| eval: !expr file.exists(clim_csv)
+nc_plot(var)
 ```
 
 
+```{r, results='asis'}
+var <- "sss"
+if (file.exists(clim_csv))
+  nc_meta(var)
+```
 
 ```{r}
-ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
-plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
+#| eval: !expr file.exists(clim_csv)
+nc_plot(var)
+```
+
+
+```{r, results='asis'}
+var <- "mld"
+if (file.exists(clim_csv))
+  nc_meta(var)
+```
+
+```{r}
+#| eval: !expr file.exists(clim_csv)
+nc_plot(var)
 ```
 
 # Physical-chemical

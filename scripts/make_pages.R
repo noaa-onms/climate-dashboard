@@ -2,16 +2,20 @@
 if (!"librarian" %in% installed.packages()[,1])
   install.packages("librarian")
 librarian::shelf(
-  dplyr, fs, glue, here, rmarkdown, sf, stringr)
+  dplyr, extractr, fs, glue, here, onmsR, rmarkdown, sf, stringr)
 
 dir_delete(here("docs"))
 dir_create(here("docs"))
 
-sanctuaries <- readRDS(here("data/sanctuaries.rds")) |>
-  arrange(sanctuary)
+nmsanctuaries <- readRDS(here("data/sanctuaries.rds")) |>
+  arrange(sanctuary) |>
+  filter(sanctuary != "Monitor") # TODO: resolve issues with no data for Monitor
 
-for (i in 1:nrow(sanctuaries)){ # i = 1
-  s <- slice(sanctuaries, i)
+for (i in 1:nrow(nmsanctuaries)){ # i = 1
+
+  message(glue("nrow(nmsanctuaries): {nrow(nmsanctuaries)}"))
+
+  s <- slice(nmsanctuaries, i)
   out_html <- here(glue("docs/{s$nms}.html"))
   message(glue("{s$sanctuary} -> {basename(out_html)}"))
 
