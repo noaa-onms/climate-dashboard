@@ -1,8 +1,5 @@
 # load packages ----
-if (!"librarian" %in% installed.packages()[,1])
-  install.packages("librarian")
-librarian::shelf(
-  dplyr, extractr, fs, glue, here, onmsR, rmarkdown, sf, stringr)
+s
 
 dir_delete(here("docs"))
 dir_create(here("docs"))
