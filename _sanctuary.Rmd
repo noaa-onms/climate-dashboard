@@ -118,6 +118,23 @@ if (has_data)
 plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
 ```
 
+### Annual
+```{r}
+## load csv
+SST <- read_csv(ts_csv)
+## subset SST for last year
+SST.lastyear = SST %>% filter(year(date)==max(year(date)))
+
+## make the plot
+pp = ggplot(SST.clim, aes(yDay, SST.mean))
+pp = pp + geom_line() + geom_smooth(span=0.25, se=FALSE, colour="steelblue") +  
+  geom_ribbon(aes(ymin=SST.q25, ymax=SST.q75), fill="steelblue", alpha=0.5) +
+  geom_line(data=SST.lastyear, aes(yday(time), SST), colour="red") + 
+  ylab("Temperatura del mar superficial °C") + xlab("Día del año") + 
+  theme_bw(base_size = 9) 
+ggplotly(pp) %>% plotly::config(displayModeBar = F) 
+```
+
 # Forecast
 
 ```{r, results='asis'}
