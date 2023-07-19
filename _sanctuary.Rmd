@@ -11,16 +11,21 @@ output:
 params:
   # nms: "GRNMS"
   # sanctuary: "Gray's Reef"
-  nms: "MNMS"
-  sanctuary: "Monitor"
+  # nms: "MBNMS-david"
+  # sanctuary: "Monterey Bay - Davidson Seamount"
+  # nms: "MNMS"
+  # sanctuary: "Monitor"
+  nms: "MBNMS-david"
+  sanctuary: "Monterey Bay - Davidson Seamount"
+  
 editor_options: 
   chunk_output_type: console
 ---
 
 ```{r setup}
 # params <- list(
-#   nms       = "CBNMS",
-#   sanctuary = "Cordell Bank")
+#   nms       = "MBNMS-david",
+#   sanctuary = "Monterey Bay - Davidson Seamount")
 
 librarian::shelf(
   dplyr, glue, here, mapview, readr, sf, stringr,
