@@ -93,31 +93,6 @@ ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
 plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
 ```
 
-### Coral Reef Watch {data-height=300}
-
-```{r, results='asis'}
-ds_var <- "CRW_SST"
-ds <- filter(datasets_ed, var == !!ds_var)
-ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
-
-# TODO: resolve issues with Monitor being too small to have data
-has_data <- sum(!is.na(read_csv(ts_csv, show_col_types=F) |> pull(mean))) > 0
-
-pfx <- '
-  <details>
-  <summary>
-  <span style="color: #dc3545;font-size: 12px">Dataset Incomplete</span></summary>
-  Only the first of the year for this daily dataset was consistently fetched across sanctuaries so far.
-  </details>'
-if (has_data)
-  write_metadata(params$nms, ds_var, ds$url, pfx)
-```
-
-```{r}
-#| eval: !expr has_data
-plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
-```
-
 # Forecast
 
 ```{r, results='asis'}
