@@ -1,5 +1,9 @@
 # load packages ----
-s
+if (!"librarian" %in% installed.packages()[,1])
+  install.packages("librarian")
+librarian::shelf(
+  dplyr, extractr, fs, glue, here, onmsR, rmarkdown, sf, stringr)
+source(here("scripts/functions.R"))
 
 dir_delete(here("docs"))
 dir_create(here("docs"))
@@ -7,6 +11,9 @@ dir_create(here("docs"))
 nmsanctuaries <- readRDS(here("data/sanctuaries.rds")) |>
   arrange(sanctuary) |>
   filter(sanctuary != "Monitor") # TODO: resolve issues with no data for Monitor
+
+# _navbar.html: only update if Sanctuaries change
+# make_navbar()
 
 for (i in 1:nrow(nmsanctuaries)){ # i = 1
 
