@@ -1,13 +1,14 @@
 # load packages ----
 if (!"librarian" %in% installed.packages()[,1])
   install.packages("librarian")
+# devtools::install_github("marinebon/extractr") # run this to get the latest
 librarian::shelf(
   dplyr, fs, glue, here, lubridate, purrr, readr, sf, stringr, terra, tibble, tidyr,
   calcofi/calcofi4r, # temporarily to get Chumash
   noaa-onms/onmsR,
-  marinebon/extractr
-  )
+  marinebon/extractr)
 # TODO: fix onmsr -- Warning message: replacing previous import ‘magrittr::extract’ by ‘tidyr::extract’ when loading ‘onmsR’
+
 # devtools::load_all(here("../../marinebon/extractr"))
 # devtools::install_local(here::here("../../marinebon/extractr"))
 options(readr.show_col_types = F)
@@ -51,7 +52,7 @@ ed_datasets <- read_csv(here("data/datasets.csv")) |>
 # TODO: assign vars to sanctuaries since Coral Reef Watch not applicable to all
 
 # iterate over ERDDAP datasets ----
-for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
+for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 3
 # for (i_ed in c(3)){ # i_ed = 3
 
   ed_row <- ed_datasets |> slice(i_ed)
@@ -103,12 +104,13 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
 
       date_beg <- ed_dates_todo[i_beg]
       i_end <- min(c(i_beg + n_dates, length(ed_dates_todo)))
-      date_end <-ed_dates_todo[i_end]
+      date_end <- ed_dates_todo[i_end]
       message(glue("    {i_beg}:{date_beg} to {i_end}:{date_end} of {length(ed_dates_todo)} dates ~ {Sys.time()}"))
 
 
       # rerddap CRAN version 1.0.1: had to install older version
       # devtools::install_github("ropensci/rerddap@6da41ea7a1af990ba880e1988417f4e28de64c5f")
+      # install.packages("rerddap") # to get latest version 1.0.3
       nc <- try(rerddap::griddap(
         datasetx  = attr(ed, "datasetid"),
         fields    = ed_row$var,
@@ -116,7 +118,7 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
         # url       = "https://coastwatch.pfeg.noaa.gov/erddap",
         longitude = c(bb["xmin"], bb["xmax"]),
         latitude  = c(bb["ymin"], bb["ymax"]),
-        time      = c(date_beg, date_end),
+        time      = c(date_beg, date_end) |> as.character(),
         fmt       = "nc"))
       # rerddap CRAN version 1.0.2 newer version gives this error:
       #   [1] "time must be given as character strings"
