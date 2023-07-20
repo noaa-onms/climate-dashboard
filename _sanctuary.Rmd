@@ -15,7 +15,7 @@ params:
   # sanctuary: "Monterey Bay - Davidson Seamount"
   # nms: "MNMS"
   # sanctuary: "Monitor"
-  nms: "MBNMS-david"
+  nms: "MBNMS"
   sanctuary: "Monterey Bay - Davidson Seamount"
   
 editor_options: 
@@ -29,7 +29,7 @@ editor_options:
 
 librarian::shelf(
   dplyr, glue, here, mapview, readr, sf, stringr,
-  marinebon/extractr)
+  marinebon/extractr, lubridate, ggplot2, plotly)
 # devtools::load_all("~/Github/marinebon/extractr")
 source(here("scripts/functions.R"))
 
@@ -131,8 +131,9 @@ SST <- read_csv(ts_csv)
 SST.lastyear = SST %>% filter(year(date)==max(year(date)))
 
 ## make the plot
-pp = ggplot(SST.clim, aes(yDay, SST.mean))
-pp = pp + geom_line() + geom_smooth(span=0.25, se=FALSE, colour="steelblue") +  
+# pp = ggplot(SST.clim, aes(yDay, SST.mean))
+# TODO: add back pp = pp + below
+pp = geom_line() + geom_smooth(span=0.25, se=FALSE, colour="steelblue") +  
   geom_ribbon(aes(ymin=SST.q25, ymax=SST.q75), fill="steelblue", alpha=0.5) +
   geom_line(data=SST.lastyear, aes(yday(time), SST), colour="red") + 
   ylab("Temperatura del mar superficial °C") + xlab("Día del año") + 
