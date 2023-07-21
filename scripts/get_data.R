@@ -4,12 +4,12 @@ if (!"librarian" %in% installed.packages()[,1])
 librarian::shelf(
   dplyr, fs, glue, here, lubridate, purrr, readr, sf, stringr, terra, tibble, tidyr,
   calcofi/calcofi4r, # temporarily to get Chumash
-  noaa-onms/onmsR #,
-  # marinebon/extractr
-  )
+  noaa-onms/onmsR,
+  marinebon/extractr)
 # TODO: fix onmsr -- Warning message: replacing previous import ‘magrittr::extract’ by ‘tidyr::extract’ when loading ‘onmsR’
-devtools::load_all(here("../../marinebon/extractr"))
-# devtools::install_local(here::here("../../marinebon/extractr"))
+# devtools::load_all(here("../../marinebon/extractr"))                        # debug locally
+# devtools::install_github("marinebon/extractr", force = T)                   # get latest from Github
+# devtools::install_local(here::here("../../marinebon/extractr"), force = T)  # get latest locally
 options(readr.show_col_types = F)
 
 # notes ----

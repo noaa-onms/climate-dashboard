@@ -98,6 +98,25 @@ ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
 plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
 ```
 
+### Coral Reef Watch {data-height=300}
+
+```{r, results='asis'}
+ds_var <- "CRW_SST"
+ds <- filter(datasets_ed, var == !!ds_var)
+write_metadata(params$nms, ds_var, ds$url)
+```
+
+```{r}
+ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
+# TODO: resolve issues with Monitor being too small to have data
+has_data <- sum(!is.na(read_csv(ts_csv, show_col_types=F) |> pull(mean))) > 0
+```
+
+```{r}
+#| eval: !expr has_data
+plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
+```
+
 # Forecast
 
 ```{r, results='asis'}
