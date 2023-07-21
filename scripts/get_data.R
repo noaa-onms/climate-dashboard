@@ -4,11 +4,11 @@ if (!"librarian" %in% installed.packages()[,1])
 librarian::shelf(
   dplyr, fs, glue, here, lubridate, purrr, readr, sf, stringr, terra, tibble, tidyr,
   calcofi/calcofi4r, # temporarily to get Chumash
-  noaa-onms/onmsR,
-  marinebon/extractr
+  noaa-onms/onmsR #,
+  # marinebon/extractr
   )
 # TODO: fix onmsr -- Warning message: replacing previous import ‘magrittr::extract’ by ‘tidyr::extract’ when loading ‘onmsR’
-# devtools::load_all(here("../../marinebon/extractr"))
+devtools::load_all(here("../../marinebon/extractr"))
 # devtools::install_local(here::here("../../marinebon/extractr"))
 options(readr.show_col_types = F)
 
@@ -106,9 +106,10 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
       date_end <-ed_dates_todo[i_end]
       message(glue("    {i_beg}:{date_beg} to {i_end}:{date_end} of {length(ed_dates_todo)} dates ~ {Sys.time()}"))
 
+      # install.packages("rerddap") # get latest rerddap version 1.0.3
+      date_beg_str <- glue("{date_beg}T12:00:00Z")
+      date_end_str <- glue("{date_end}T12:00:00Z")
 
-      # rerddap CRAN version 1.0.1: had to install older version
-      # devtools::install_github("ropensci/rerddap@6da41ea7a1af990ba880e1988417f4e28de64c5f")
       nc <- try(rerddap::griddap(
         datasetx  = attr(ed, "datasetid"),
         fields    = ed_row$var,
@@ -116,21 +117,8 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
         # url       = "https://coastwatch.pfeg.noaa.gov/erddap",
         longitude = c(bb["xmin"], bb["xmax"]),
         latitude  = c(bb["ymin"], bb["ymax"]),
-        time      = c(date_beg, date_end),
+        time      = c(date_beg_str, date_end_str),
         fmt       = "nc"))
-      # rerddap CRAN version 1.0.2 newer version gives this error:
-      #   [1] "time must be given as character strings"
-      #   Error in print.default("you are passing ", paste0(class(dimargs$time))) :
-      #     invalid printing digits -2147483648
-      #   In addition: Warning message:
-      #     In print.default("you are passing ", paste0(class(dimargs$time))) :
-      #     NAs introduced by coercion
-      #  submitted issue at https://github.com/ropensci/rerddap/issues/113
-
-      # Error : Error {
-      #   code=500;
-      #   message="Internal Server Error: FileNotFoundException: /usr/local/erddap/cache/km/dhw_5km/b0b7_7e83_fd06_170688975_0 (No such file or directory)";
-      # }
 
       if ("try-error" %in% class(nc)){
         stop(glue("
@@ -141,7 +129,7 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
             url       = '{ed$base_url}',
             longitude = c({bb['xmin']}, {bb['xmax']}),
             latitude  = c({bb['ymin']}, {bb['ymax']}),
-            time      = c('{date_beg}', '{date_end}'))"))}
+            time      = c('{date_beg_str}', '{date_end_str}'))"))}
 
       if (all(c("lon", "lat") %in% colnames(nc$data))){
         x <- tibble(nc$data) %>%
@@ -231,6 +219,8 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
         stk <- rast(x$r)
         names(stk) <- glue("{ed_row$var}_{as.character(x$date) |> str_replace_all('-','.')}")
         crs(stk) <- "EPSG:4326"
+
+        # devtools::load_all(here("../../marinebon/extractr"))
         d_ed <- grds_to_ts(
           stk, fxns = c("mean", "sd", "isNA", "notNA"),
           verbose = T)
