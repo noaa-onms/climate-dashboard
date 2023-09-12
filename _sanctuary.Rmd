@@ -15,23 +15,27 @@ params:
   # sanctuary: "Monterey Bay - Davidson Seamount"
   # nms: "MNMS"
   # sanctuary: "Monitor"
-  nms: "MBNMS-david"
-  sanctuary: "Monterey Bay - Davidson Seamount"
-  
+  # nms: "MBNMS-david"
+  # sanctuary: "Monterey Bay - Davidson Seamount"
+  nms: "FGBNMS"
+  sanctuary: "Flower Garden Banks"
+execute:
+  cache: false
 editor_options: 
   chunk_output_type: console
 ---
 
 ```{r setup}
 # params <- list(
-#   nms       = "MBNMS-david",
-#   sanctuary = "Monterey Bay - Davidson Seamount")
+#   nms       = "FGBNMS",
+#   sanctuary = "Flower Garden Banks")
 
 librarian::shelf(
   dplyr, glue, here, mapview, readr, sf, stringr,
   marinebon/extractr)
 # devtools::load_all("~/Github/marinebon/extractr")
 source(here("scripts/functions.R"))
+options(readr.show_col_types = F)
 
 sanctuaries <- readRDS(here("data/sanctuaries.rds"))
 
@@ -98,26 +102,27 @@ ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
 plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
 ```
 
-### Coral Reef Watch {data-height=300}
+<!-- ### Coral Reef Watch {data-height=300} -->
 
 ```{r, results='asis'}
-ds_var <- "CRW_SST"
-ds <- filter(datasets_ed, var == !!ds_var)
-write_metadata(params$nms, ds_var, ds$url)
+# ds_var <- "CRW_SST"
+# ds <- filter(datasets_ed, var == !!ds_var)
+# write_metadata(params$nms, ds_var, ds$url)
 ```
 
 ```{r}
-ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
-# TODO: resolve issues with Monitor being too small to have data
-has_data <- sum(!is.na(read_csv(ts_csv, show_col_types=F) |> pull(mean))) > 0
+# ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
+# # TODO: resolve issues with Monitor being too small to have data
+# has_data <- sum(!is.na(read_csv(ts_csv, show_col_types=F) |> pull(mean))) > 0
 ```
 
 ```{r}
-#| eval: !expr has_data
-plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
+# eval: !expr has_data
+
+# plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
 ```
 
-# Forecast
+# Projections
 
 ```{r, results='asis'}
 clim_csv <- glue(here("data/Climate_projections/{params$nms}_CESM2LE_data_1850-2100_mean_stdev_annual.csv"))
@@ -129,6 +134,8 @@ if (file.exists(clim_csv))
 
 ```{r}
 #| eval: !expr file.exists(clim_csv)
+
+source(here("scripts/functions.R"))
 nc_plot(var)
 ```
 

@@ -63,11 +63,15 @@ nc_plot <- function(var){
   v <- datasets_nc |>
     filter(var == !!var)
 
-  plot_ts(
-    clim_csv,
-    fld_avg  = glue("{var}_mean"),
-    fld_sd   = glue("{var}_sd"),
-    fld_date = "year",
-    color    = v$plot_color,
-    label    = v$plot_label)
+  clim_csv |>
+    read_csv() |>
+    filter(
+      year >= glue("{v$yr_beg}-01-01") &
+      year <= glue("{v$yr_end}-12-31")) |>
+    plot_ts(
+      fld_avg  = glue("{var}_mean"),
+      fld_sd   = glue("{var}_sd"),
+      fld_date = "year",
+      color    = v$plot_color,
+      label    = v$plot_label)
 }

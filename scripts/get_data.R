@@ -72,6 +72,10 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
 
     ts_csv  <- here(glue("data/{ed_row$var}/{ply$nms}.csv"))
 
+    # if (ply$nms %in% c("MNMS","NMSAS") & ed_row$var == "CRW_SST")
+    if (ed_row$var == "CRW_SST")
+      next
+
     if (file_exists(ts_csv)){
       d_csv <- read_csv(ts_csv)
       csv_dates <- d_csv |> pull(date)
@@ -107,8 +111,12 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
       message(glue("    {i_beg}:{date_beg} to {i_end}:{date_end} of {length(ed_dates_todo)} dates ~ {Sys.time()}"))
 
       # install.packages("rerddap") # get latest rerddap version 1.0.3
-      date_beg_str <- glue("{date_beg}T12:00:00Z")
-      date_end_str <- glue("{date_end}T12:00:00Z")
+      hr_var <- ifelse(ed_row$var == "CRW_SST", "12", "00")
+      # TODO: fix extractr::get_ed_dates() to return hour:minute:second
+
+
+      date_beg_str <- glue("{date_beg}T{hr_var}:00:00Z")
+      date_end_str <- glue("{date_end}T{hr_var}:00:00Z")
 
       nc <- try(rerddap::griddap(
         datasetx  = attr(ed, "datasetid"),
@@ -134,7 +142,7 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
       if (all(c("lon", "lat") %in% colnames(nc$data))){
         x <- tibble(nc$data) %>%
           mutate(
-            date = as.Date(time, "%Y-%m-%dT12:00:00Z")) %>%
+            date = as.Date(time, glue("%Y-%m-%dT{hr_var}:00:00Z"))) %>%
           select(-time)
       } else if (all(c("longitude", "latitude") %in% colnames(nc$data))){
         x <- tibble(nc$data) %>%
