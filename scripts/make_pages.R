@@ -4,9 +4,11 @@ if (!"librarian" %in% installed.packages()[,1])
 librarian::shelf(
   dplyr,
   # marinebon/extractr,
+  flexdashboard,
   fs, glue, here,
   # "noaa-onms/onmsR",
-  rmarkdown, sf, stringr)
+  rmarkdown, sf, stringr,
+  quiet = T)
 source(here("scripts/functions.R"))
 
 dir_delete(here("docs"))
