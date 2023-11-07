@@ -2,7 +2,11 @@
 if (!"librarian" %in% installed.packages()[,1])
   install.packages("librarian")
 librarian::shelf(
-  dplyr, extractr, fs, glue, here, rmarkdown, sf, stringr)
+  dplyr,
+  # marinebon/extractr,
+  fs, glue, here,
+  # "noaa-onms/onmsR",
+  rmarkdown, sf, stringr)
 source(here("scripts/functions.R"))
 
 dir_delete(here("docs"))
