@@ -1,0 +1,78 @@
+---
+title: "Extractr"
+format: html
+editor: visual
+editor_options: 
+  chunk_output_type: console
+---
+
+## Get Data using `extractr`
+
+```{r}
+# devtools::install_local(here("~/Github/marinebon/extractr"), force = T)
+# devtools::load_all(here("~/Github/marinebon/extractr"))
+librarian::shelf(
+  dplyr, DT, furrr, glue, here, lubridate, mapview, readr, sf, stringr,
+  marinebon/extractr)
+
+sanctuaries <- readRDS(here("data/sanctuaries.rds"))
+mapView(sanctuaries)
+sanctuaries |> 
+  st_drop_geometry() |> 
+  datatable()
+
+dir_out <- here("data/noaacrwsstDaily")
+ed <- ed_info("https://coastwatch.noaa.gov/erddap/griddap/noaacrwsstDaily.html")   # CoralTemp eddaily
+ed
+
+
+times <- ed_dim(ed, "time")
+length(times)
+range(times)
+
+(vars <- ed_vars(ed))
+
+sanctuary_years <- sanctuaries |> 
+  st_drop_geometry() |> 
+  select(nms) |> 
+  cross_join(
+    tibble(
+      year = year(min(v_times)):year(max(v_times))))
+sanctuary_years
+
+n_cores <- parallel::detectCores() - 1
+plan(multisession, workers = n_cores)
+
+future_pmap(
+  sanctuary_years, 
+  \(nms, year){
+    # nms = "MBNMS"; year = 1985
+    times_yr <- times[year(times) == year]
+    
+    # DEBUG
+    # ed <- ed_info("https://coastwatch.noaa.gov/erddap/griddap/noaacrwsstDaily.html")
+    # var = "analysed_sst"
+    # time_min = as.POSIXct("1985-01-01 12:00:00 UTC")
+    # time_max = as.POSIXct("1985-12-31 12:00:00 UTC")
+    
+    # devtools::load_all(here("~/Github/marinebon/extractr"))
+    ed_extract(
+      ed, 
+      var       = vars$variable_name[1],
+      aoi       = sanctuaries |> 
+        filter(nms == !!nms),
+      rast_tif  = glue("{dir_out}/{nms}/{year}.tif"),
+      zonal_csv = glue("{dir_out}/{nms}/{year}.csv"),
+      time_min  = min(times_yr),
+      time_max  = max(times_yr))
+    
+  })
+
+```
+
+## Visualize Data
+
+```{r}
+#| echo: false
+2 * 2
+```
