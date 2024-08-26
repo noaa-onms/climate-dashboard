@@ -3,7 +3,7 @@ if (!"librarian" %in% installed.packages()[,1])
   install.packages("librarian")
 librarian::shelf(
   dplyr, fs, glue, here, lubridate, purrr, readr, sf, stringr, terra, tibble, tidyr,
-  calcofi/calcofi4r, # temporarily to get Chumash
+  # calcofi/calcofi4r, # temporarily to get Chumash
   noaa-onms/onmsR,
   marinebon/extractr)
 # TODO: fix onmsr -- Warning message: replacing previous import ‘magrittr::extract’ by ‘tidyr::extract’ when loading ‘onmsR’
