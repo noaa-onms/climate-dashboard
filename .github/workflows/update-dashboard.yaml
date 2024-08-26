@@ -11,7 +11,7 @@ name: Update Dashboard
 
 jobs:
   get-render:
-    runs-on: macOS-latest
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     env:
