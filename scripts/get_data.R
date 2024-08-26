@@ -40,7 +40,8 @@ if (!file.exists(sanctuaries_rds)){
   sanctuaries$sanctuary[sanctuaries$nms == "FGBNMS"] = "Flower Garden Banks"
   saveRDS(sanctuaries, sanctuaries_rds)
 }
-sanctuaries <- readRDS(sanctuaries_rds)
+sanctuaries <- readRDS(sanctuaries_rds) # |>
+  # filter(nms %in% c("FKNMS")) # TODO: drop DEBUG
 
 # ERDDAP datasets ----
 ed_datasets <- read_csv(here("data/datasets.csv")) |>
@@ -57,13 +58,13 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
   ed_row <- ed_datasets |> slice(i_ed)
   message(glue("dataset: {ed_row$var} ~ {Sys.time()}"))
 
-  ed            <- extractr::get_ed_info(ed_row$url)
-  ed_date_range <- extractr::get_ed_dates(ed)
-  ed_dates      <- extractr::get_ed_dates_all(
-    ed, min(ed_date_range), max(ed_date_range))
+  ed   <- extractr::ed_info(ed_row$url)
+  ed_dims <- extractr::ed_dims(ed)
+  stopifnot(all(c("time","longitude","latitude") %in% names(ed_dims)))
+  ed_dates <- as.Date(ed_dims$time)
 
   # iterate over sanctuaries ----
-  for (i_s in 1:nrow(sanctuaries)){ # i_s = 15
+  for (i_s in 1:nrow(sanctuaries)){ # i_s = 1
   #for (i_s in 10:nrow(sanctuaries)){ # i_s = 2
 
     ply <- slice(sanctuaries, i_s)
@@ -73,12 +74,12 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
     ts_csv  <- here(glue("data/{ed_row$var}/{ply$nms}.csv"))
 
     # if (ply$nms %in% c("MNMS","NMSAS") & ed_row$var == "CRW_SST")
-    if (ed_row$var == "CRW_SST")
+    if (ed_row$var == "CRW_SST")  # TODO: fix CRW_SST for all sanctuaries
       next
 
     if (file_exists(ts_csv)){
-      d_csv <- read_csv(ts_csv)
-      csv_dates <- d_csv |> pull(date)
+      d_csv         <- read_csv(ts_csv)
+      csv_dates     <- d_csv |> pull(date)
       ed_dates_todo <- setdiff(ed_dates, csv_dates) |>
         as.Date(origin = "1970-01-01")
     } else {
@@ -91,9 +92,6 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
         notNA = numeric())
       ed_dates_todo <- ed_dates
     }
-
-    if (class(ed_dates_todo) == "numeric")
-      ed_dates_todo <- as.Date(ed_dates_todo, origin = "1970-01-01")
 
     if (length(ed_dates_todo) == 0)
       next
@@ -113,7 +111,6 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
       # install.packages("rerddap") # get latest rerddap version 1.0.3
       hr_var <- ifelse(ed_row$var == "CRW_SST", "12", "00")
       # TODO: fix extractr::get_ed_dates() to return hour:minute:second
-
 
       date_beg_str <- glue("{date_beg}T{hr_var}:00:00Z")
       date_end_str <- glue("{date_end}T{hr_var}:00:00Z")
@@ -230,7 +227,9 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
 
         # devtools::load_all(here("../../marinebon/extractr"))
         d_ed <- grds_to_ts(
-          stk, fxns = c("mean", "sd", "isNA", "notNA"),
+          stk,
+          fxns = c("mean", "sd", "isNA", "notNA"),
+          # ts_csv = ts_csv,
           verbose = T)
       }
 
@@ -248,9 +247,10 @@ for (i_ed in 1:nrow(ed_datasets)){ # i_ed = 1
       }
       d_csv |>
         bind_rows(d_ed) |>
-        arrange(date) |>
-        filter(
-          !duplicated(date)) |>
+        filter(!duplicated(lyr)) |>
+        arrange(lyr) |>
+        # filter(
+        #   !duplicated(date)) |>
         write_csv(ts_csv)
 
     } # loop dates

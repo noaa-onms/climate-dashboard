@@ -11,21 +11,26 @@ librarian::shelf(
   quiet = T)
 source(here("scripts/functions.R"))
 
-dir_delete(here("docs"))
-dir_create(here("docs"))
+redo_all = T
 
-nmsanctuaries <- readRDS(here("data/sanctuaries.rds")) |>
-  arrange(sanctuary) |>
+if (redo_all){
+  dir_delete(here("docs"))
+  dir_create(here("docs"))
+}
+
+sanctuaries <- readRDS(here("data/sanctuaries.rds")) |>
+  arrange(nms) |>
   filter(sanctuary != "Monitor") # TODO: resolve issues with no data for Monitor
+  # filter(nms == "FKNMS")       # DEBUG FKNMS
 
 # _navbar.html: only update if Sanctuaries change
 # make_navbar()
 
-for (i in 1:nrow(nmsanctuaries)){ # i = 1
+for (i in 1:nrow(sanctuaries)){ # i = 1
 
-  message(glue("nrow(nmsanctuaries): {nrow(nmsanctuaries)}"))
+  message(glue("nrow(sanctuaries): {nrow(sanctuaries)}"))
 
-  s <- slice(nmsanctuaries, i)
+  s <- slice(sanctuaries, i)
   out_html <- here(glue("docs/{s$nms}.html"))
   message(glue("{s$sanctuary} -> {basename(out_html)}"))
 
@@ -37,12 +42,15 @@ for (i in 1:nrow(nmsanctuaries)){ # i = 1
       nms       = s$nms))
 }
 
-# make index
-render(
-  here("index.Rmd"),
-  output_file = here(glue("docs/index.html")))
+if (redo_all){
+  # make index
+  render(
+    here("index.Rmd"),
+    output_file = here(glue("docs/index.html")))
 
-# copy dependent files
-fs::file_copy("_style.css", here("docs/_style.css"))
+  # copy dependent files
+  fs::file_copy("_style.css", here("docs/_style.css"))
+}
+
 
 
