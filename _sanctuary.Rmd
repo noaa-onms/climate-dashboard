@@ -93,7 +93,12 @@ plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
     
 ```{r, results='asis'}
 ds_var <- "chlorophyll"
-ds <- filter(datasets_ed, var == !!ds_var)
+ds <- filter(datasets_ed, var == !!ds_var) |> 
+  slice(1)
+# TODO: clarify that "chlorophyll" is actually two datasets: 
+# - chl:      https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chlamday.html
+# - chl, nrt: https://coastwatch.pfeg.noaa.gov/erddap/griddap/erdMH1chlamday_R2022NRT.html
+
 write_metadata(params$nms, ds_var, ds$url)
 ```
 
