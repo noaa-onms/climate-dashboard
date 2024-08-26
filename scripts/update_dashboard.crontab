@@ -1,0 +1,2 @@
+# must be ended with a new line "LF" (Unix) and not "CRLF" (Windows)
+* * * * * /share/github/noaa-onms/climate-dashboard/udpate_dashboard.sh >> /var/log/cron.log 2>&1

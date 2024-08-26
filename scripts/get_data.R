@@ -8,6 +8,7 @@ librarian::shelf(
   marinebon/extractr)
 # TODO: fix onmsr -- Warning message: replacing previous import ‘magrittr::extract’ by ‘tidyr::extract’ when loading ‘onmsR’
 # devtools::load_all(here("../../marinebon/extractr"))                        # debug locally
+# devtools::install_github("noaa-onms/onmsR", force = T)                      # get latest from Github
 # devtools::install_github("marinebon/extractr", force = T)                   # get latest from Github
 # devtools::install_local(here::here("../../marinebon/extractr"), force = T)  # get latest locally
 options(readr.show_col_types = F)
