@@ -1,2 +1,2 @@
-# must be ended with a new line "LF" (Unix) and not "CRLF" (Windows)
-* * * * * /share/github/noaa-onms/climate-dashboard/udpate_dashboard.sh >> /var/log/cron.log 2>&1
+# every Monday, fetch data and update html in noaa-onms/climate-dashboard
+0 0 * * 1 /share/github/noaa-onms/climate-dashboard/scripts/update_dashboard.sh >> /var/log/cron.log 2>&1
