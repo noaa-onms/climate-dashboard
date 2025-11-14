@@ -59,18 +59,24 @@ nc_meta <- function(var){
   '))
 }
 
-nc_plot <- function(var){
+nc_plot <- function(var, nms){
   v <- datasets_nc |>
     filter(var == !!var)
 
   clim_csv |>
     read_csv() |>
     filter(
-      year >= glue("{v$yr_beg}-01-01") &
-      year <= glue("{v$yr_end}-12-31")) |>
+      nms == !!nms,
+      var == !!var) |>
+    select(year, stat, value) |>
+    mutate(
+      year = as.Date(glue("{year}-07-01"))) |>
+    pivot_wider(
+      names_from  = stat,
+      values_from = value) |>
     plot_ts(
-      fld_avg  = glue("{var}_mean"),
-      fld_sd   = glue("{var}_sd"),
+      fld_avg  = "mean",
+      fld_sd   = "stdev",
       fld_date = "year",
       color    = v$plot_color,
       label    = v$plot_label)

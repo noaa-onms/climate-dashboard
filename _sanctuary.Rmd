@@ -17,8 +17,10 @@ params:
   # sanctuary: "Monitor"
   # nms: "MBNMS-david"
   # sanctuary: "Monterey Bay - Davidson Seamount"
-  nms: "FGBNMS"
-  sanctuary: "Flower Garden Banks"
+  # nms: "FGBNMS"
+  # sanctuary: "Flower Garden Banks"
+  nms: "CBNMS"
+  sanctuary: "Cordell Bank"
 execute:
   cache: false
 editor_options: 
@@ -27,11 +29,11 @@ editor_options:
 
 ```{r setup}
 # params <- list(
-#   nms       = "FGBNMS",
-#   sanctuary = "Flower Garden Banks")
+#   nms       = "CBNMS",
+#   sanctuary = "Cordell Bank")
 
 librarian::shelf(
-  dplyr, glue, here, mapview, readr, sf, stringr,
+  dplyr, glue, here, mapview, readr, sf, stringr, tidyr,
   marinebon/extractr)
 # devtools::load_all("~/Github/marinebon/extractr")
 source(here("scripts/functions.R"))
@@ -86,7 +88,7 @@ write_metadata(params$nms, ds_var, ds$url)
     
 ```{r}
 ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
-plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
+plot_ts(ts_csv, fld_sd = "sd", fld_date = "date", color = ds$plot_color, label = ds$plot_label)
 ```
 
 ### Chlorophyll {data-height=300}
@@ -104,7 +106,7 @@ write_metadata(params$nms, ds_var, ds$url)
 
 ```{r}
 ts_csv <- here(glue("data/{ds_var}/{params$nms}.csv"))
-plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
+plot_ts(ts_csv, fld_sd = "sd", fld_date = "date", color = ds$plot_color, label = ds$plot_label)
 ```
 
 <!-- ### Coral Reef Watch {data-height=300} -->
@@ -130,66 +132,90 @@ plot_ts(ts_csv, fld_sd = "sd", color = ds$plot_color, label = ds$plot_label)
 # Projections
 
 ```{r, results='asis'}
-clim_csv <- glue(here("data/Climate_projections/{params$nms}_CESM2LE_data_1850-2100_mean_stdev_annual.csv"))
-
-var <- "sst"
-if (file.exists(clim_csv))
-  nc_meta(var)
-```
-
-```{r}
-#| eval: !expr file.exists(clim_csv)
-
 source(here("scripts/functions.R"))
-nc_plot(var)
-```
 
-```{r, results='asis'}
-var <- "chl"
-if (file.exists(clim_csv))
+clim_csv <- glue(here("data/ucar_projections_by_sanctuary.csv"))
+
+var <- "SST"
+has_var <- read_csv(clim_csv) |> filter(nms == params$nms, var == !!var) |> nrow() > 0
+
+if (has_var)
   nc_meta(var)
 ```
 
 ```{r}
-#| eval: !expr file.exists(clim_csv)
-nc_plot(var)
+#| eval: !expr has_var
+nc_plot(var, nms = params$nms)
 ```
 
 ```{r, results='asis'}
-var <- "ph"
-if (file.exists(clim_csv))
+var <- "Chl"
+has_var <- read_csv(clim_csv) |> filter(nms == params$nms, var == !!var) |> nrow() > 0
+
+if (has_var)
   nc_meta(var)
 ```
 
 ```{r}
-#| eval: !expr file.exists(clim_csv)
-nc_plot(var)
+#| eval: !expr has_var
+nc_plot(var, nms = params$nms)
 ```
 
-
 ```{r, results='asis'}
-var <- "sss"
-if (file.exists(clim_csv))
+var <- "NPP"
+has_var <- read_csv(clim_csv) |> filter(nms == params$nms, var == !!var) |> nrow() > 0
+
+if (has_var)
   nc_meta(var)
 ```
 
 ```{r}
-#| eval: !expr file.exists(clim_csv)
-nc_plot(var)
+#| eval: !expr has_var
+nc_plot(var, nms = params$nms)
 ```
 
-
 ```{r, results='asis'}
-var <- "mld"
-if (file.exists(clim_csv))
+var <- "PH"
+has_var <- read_csv(clim_csv) |> filter(nms == params$nms, var == !!var) |> nrow() > 0
+
+if (has_var)
   nc_meta(var)
 ```
 
 ```{r}
-#| eval: !expr file.exists(clim_csv)
-nc_plot(var)
+#| eval: !expr has_var
+nc_plot(var, nms = params$nms)
 ```
 
+
+```{r, results='asis'}
+var <- "SSS"
+has_var <- read_csv(clim_csv) |> filter(nms == params$nms, var == !!var) |> nrow() > 0
+
+if (has_var)
+  nc_meta(var)
+```
+
+```{r}
+#| eval: !expr has_var
+nc_plot(var, nms = params$nms)
+```
+
+
+```{r, results='asis'}
+var <- "HMXL_DR"
+has_var <- read_csv(clim_csv) |> filter(nms == params$nms, var == !!var) |> nrow() > 0
+
+if (has_var)
+  nc_meta(var)
+```
+
+```{r}
+#| eval: !expr has_var
+nc_plot(var, nms = params$nms)
+```
+
+<!--
 # Physical-chemical
 
 ### Chart P.1
@@ -227,3 +253,4 @@ nc_plot(var)
 ```{r}
 ```
 
+-->

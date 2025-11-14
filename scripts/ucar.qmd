@@ -1,0 +1,199 @@
+---
+title: "UCAR"
+format:
+  html:
+    embed-resources: true
+editor_options: 
+  chunk_output_type: console
+---
+
+## UCAR projections
+
+```{r}
+#| label: setup
+
+librarian::shelf(
+  dplyr, exactextractr, fs, glue, here, mapview, 
+  ncmeta, noaa-onms/onmsR,  # sanctuaries
+  readr, sf, stars, stringr, terra, tibble, tidyr, viridisLite,
+  quiet = T)
+options(readr.show_col_types = F)
+
+# data directory ----
+dir_nc <- "~/Library/CloudStorage/GoogleDrive-ben@ecoquants.com/.shortcut-targets-by-id/12xRQdl-kc1qvbs7HG7AIlV4pGYz-VjKj/raster_data4sanctuaries"
+# [raster_data4sanctuaries - Google Drive](https://drive.google.com/drive/u/0/folders/12xRQdl-kc1qvbs7HG7AIlV4pGYz-VjKj)
+
+# load sanctuaries ----
+ply  <- sanctuaries |> 
+  st_shift_longitude() |>  # [-180,180] -> [   0,360] 
+  st_make_valid() |>       # [   0,360] -> [-180,180], but fixes geom
+  st_shift_longitude()     # [-180,180] -> [   0,360] 
+stopifnot(all(st_is_valid(ply)))
+df_ply <- sanctuaries |> 
+  st_drop_geometry() |> 
+  select(nms, sanctuary)
+bb_ply <- st_bbox(ply)
+
+# list available netcdf files ----
+ncs <- list.files(dir_nc, ".nc$", full.names = T)
+names(ncs) <- basename(ncs) |> 
+  str_extract("(?<=annualmean_)[^.]+")
+
+d_csv <- here("data/ucar_projections_by_sanctuary.csv")
+
+# print(names(ncs))
+# "Chl"     "HMXL_DR" "NPP"     "PH"      "SSS"     "SST"
+```
+
+
+package install notes:
+
+stars dependencies for netcdf:
+
+- [install PCICt on Mac](https://github.com/pacificclimate/PCICt/issues/4#issuecomment-2871870832)
+
+```{r}
+#| label: read_nc_variable
+#| eval: FALSE
+
+if (file.exists(d_csv)) file.remove(d_csv)
+
+var0 <- "SST"
+# var <- "Chl"
+st0  <- read_ncdf(ncs[[var0]], var = var0)
+# inspect curvilinear dimensions to determine: dx, dy,threshold
+# dims <- expand_dimensions(st0)
+# names(dims) # "nlon" "nlat" "time"
+# diff(dims$nlon[,1]) |> table() # 1.125
+# diff(dims$nlat[1,]) |> summary()
+#   Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+# 0.2573  0.2702  0.3956  0.3953  0.5070  0.5343 
+grid_reg <- st0 |>
+  st_bbox() |>
+  st_as_stars(dx = 0.125, dy = 0.125)
+
+# iterate over vars ----
+for (var in names(ncs)) { # var = "SST"; var = "Chl"; var = "NPP"
+  
+  var_tif <- here(glue("data/ucar_big/{var}.tif"))
+  
+  # r <- read_stars(ncs[[var]])
+  # ncmeta::nc_atts(ncs[[var]]) |> View()
+  # stars::st_dim_to_attr(r)
+  # ncmeta::nc_atts(ncs[[var]]) |> filter(variable == "NPP", name == "long_name") |> pull(value)
+  
+  # * read netcdf, warp, crop, rast ----
+  r <- read_ncdf(ncs[[var]], var = var) |>
+    st_warp(grid_reg, threshold = 1.125, crs = 4326) |> 
+    st_crop(bb_ply) |> 
+    as("SpatRaster")
+  
+  writeRaster(r, filename = var_tif, overwrite = T)
+  
+  # * extract area-weighted avg, pivot  ----
+  d <- exact_extract(r, ply, c('mean', 'stdev'))
+
+  # * detect date format ----
+  # Chl: mean.time1989.5     mean.time1990.5
+  # SST: mean.time1990-12-31 mean.time1991-12-31
+  is_date_fmt <- !all(str_detect(names(d), "\\.5$"))
+  names_rx <- ifelse(
+    is_date_fmt,
+    "(.*)\\.time([0-9]{4})-[0-9]{2}-[0-9]{2}",
+    "(.*)\\.time([0-9]{4})\\.5$")
+  
+  message(glue("Processing var: {var} (is_date_fmt: {is_date_fmt})"))
+
+  d <- d |> 
+    bind_cols(
+      df_ply |> 
+        select(nms)) |> 
+    pivot_longer(
+      cols          = -nms,
+      names_to      = c("stat", "year"),
+      names_pattern = names_rx,
+      values_to     = "value") |> 
+    mutate(
+      year = as.integer(year)) |>
+    mutate(
+      var  = !!var,
+      year = case_when(
+        !is_date_fmt ~ year + 1,
+        .default    = year)) |> 
+    relocate(nms, year, var, stat, value) |> 
+    arrange(nms, year, var, stat, value)
+
+  if (!file.exists(d_csv)){
+    write_csv(d, d_csv)
+  } else {
+    write_csv(d, d_csv, append = T)
+  }
+}
+```
+
+```{r}
+#| label: ck_csv
+
+d <- read_csv(d_csv)
+summary(d)
+
+d |> 
+  select(nms, var) |> 
+  table(useNA = "ifany")
+
+d  |> 
+  group_by(var) |> 
+  summarize(
+    year_min = min(year),
+    year_max = max(year))
+```
+
+```{r}
+#| label: ck_mapgl
+
+librarian::shelf(
+  glue, here, mapgl, noaa-onms/onmsR, RColorBrewer, sf, terra,
+  quiet = T)
+
+var     <- "SST"
+yr      <- 2100
+var_tif <- here(glue("data/ucar_big/{var}.tif"))
+
+r <- rast(var_tif) |> 
+  subset(glue("time{yr}-12-31"))
+
+ctr <- r |> 
+  st_bbox() |>  st_as_sfc() |> st_transform(4326) |> 
+  st_centroid() |>  st_coordinates() |> as.numeric()
+
+n_cols <- 11
+cols_r <- rev(brewer.pal(n_cols, "Spectral"))
+rng_r  <- minmax(r) |> as.numeric() |> signif(digits = 3)
+
+# mapboxgl(
+#   style  = mapbox_style("dark"),
+maplibre(
+  style  = carto_style("dark-matter"),
+  center = ctr, zoom = 1) |>
+  set_projection("globe") |> 
+  add_globe_control(position = "top-right") |> 
+  add_image_source(
+    id     = "src_r",
+    data   = r,
+    colors = cols_r) |>
+  add_raster_layer(
+    id     = "lyr_r",
+    source = "src_r",
+    raster_resampling    = "nearest") |> 
+  add_fill_layer(
+    id = "sanctuaries",
+    source = sanctuaries,
+    tooltip = "sanctuary",
+    fill_color = "blue",
+    fill_opacity = 0.5) |> 
+  mapgl::add_legend(
+    glue("{var} in {yr}"),
+    values   = rng_r,
+    colors   = cols_r,
+    position = "bottom-right")
+```
