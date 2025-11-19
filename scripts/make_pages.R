@@ -11,7 +11,7 @@ librarian::shelf(
   quiet = T)
 source(here("scripts/functions.R"))
 
-redo_all = F
+redo_all = T
 
 if (redo_all){
   dir_delete(here("docs"))

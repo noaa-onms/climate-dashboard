@@ -13,35 +13,48 @@ editor_options:
 #| label: setup
 
 librarian::shelf(
-  dplyr, exactextractr, fs, glue, here, mapview, 
-  ncmeta, noaa-onms/onmsR,  # sanctuaries
-  readr, sf, stars, stringr, terra, tibble, tidyr, viridisLite,
+  dplyr, exactextractr, fs, glue, here, knitr, mapview, 
+  ncmeta, readr, sf, stars, stringr, terra, tibble, tidyr, viridisLite,
   quiet = T)
 options(readr.show_col_types = F)
 
 # data directory ----
-dir_nc <- "~/Library/CloudStorage/GoogleDrive-ben@ecoquants.com/.shortcut-targets-by-id/12xRQdl-kc1qvbs7HG7AIlV4pGYz-VjKj/raster_data4sanctuaries"
+dir_nc          <- "~/Library/CloudStorage/GoogleDrive-ben@ecoquants.com/.shortcut-targets-by-id/12xRQdl-kc1qvbs7HG7AIlV4pGYz-VjKj/raster_data4sanctuaries"
 # [raster_data4sanctuaries - Google Drive](https://drive.google.com/drive/u/0/folders/12xRQdl-kc1qvbs7HG7AIlV4pGYz-VjKj)
+sanctuaries_rds <- here("data/sanctuaries.rds")
+d_csv           <- here("data/ucar_projections_by_sanctuary.csv")
+run_extraction  <- TRUE
 
 # load sanctuaries ----
-ply  <- sanctuaries |> 
-  st_shift_longitude() |>  # [-180,180] -> [   0,360] 
+
+# OLD: onmsR sanctuaries
+# librarian::shelf(noaa-onms/onmsR, quiet = T)
+# ply  <- sanctuaries |> 
+#   st_shift_longitude() |>  # [-180,180] -> [   0,360] 
+#   st_make_valid() |>       # [   0,360] -> [-180,180], but fixes geom
+#   st_shift_longitude()     # [-180,180] -> [   0,360] 
+# stopifnot(all(st_is_valid(ply)))
+
+# NEW: custom sanctuaries
+ply    <- readRDS(sanctuaries_rds) |> 
+  st_shift_longitude() |>  # [-180,180] -> [   0,360]
   st_make_valid() |>       # [   0,360] -> [-180,180], but fixes geom
-  st_shift_longitude()     # [-180,180] -> [   0,360] 
+  st_shift_longitude()     # [-180,180] -> [   0,360]
 stopifnot(all(st_is_valid(ply)))
-df_ply <- sanctuaries |> 
+
+df_ply <- ply |> 
   st_drop_geometry() |> 
   select(nms, sanctuary)
 bb_ply <- st_bbox(ply)
+
+kable(df_ply)
 
 # list available netcdf files ----
 ncs <- list.files(dir_nc, ".nc$", full.names = T)
 names(ncs) <- basename(ncs) |> 
   str_extract("(?<=annualmean_)[^.]+")
 
-d_csv <- here("data/ucar_projections_by_sanctuary.csv")
-
-# print(names(ncs))
+print(names(ncs))
 # "Chl"     "HMXL_DR" "NPP"     "PH"      "SSS"     "SST"
 ```
 
@@ -53,8 +66,8 @@ stars dependencies for netcdf:
 - [install PCICt on Mac](https://github.com/pacificclimate/PCICt/issues/4#issuecomment-2871870832)
 
 ```{r}
-#| label: read_nc_variable
-#| eval: FALSE
+#| label: extraction
+#| eval: !expr run_extraction
 
 if (file.exists(d_csv)) file.remove(d_csv)
 
@@ -149,7 +162,7 @@ d  |>
 ```
 
 ```{r}
-#| label: ck_mapgl
+#| label: mapgl
 
 librarian::shelf(
   glue, here, mapgl, noaa-onms/onmsR, RColorBrewer, sf, terra,
@@ -187,7 +200,7 @@ maplibre(
     raster_resampling    = "nearest") |> 
   add_fill_layer(
     id = "sanctuaries",
-    source = sanctuaries,
+    source = ply,
     tooltip = "sanctuary",
     fill_color = "blue",
     fill_opacity = 0.5) |> 
