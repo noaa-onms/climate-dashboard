@@ -19,8 +19,8 @@ if (redo_all){
 }
 
 sanctuaries <- readRDS(here("data/sanctuaries.rds")) |>
-  arrange(nms) |>
-  filter(sanctuary != "Monitor") # TODO: resolve issues with no data for Monitor
+  arrange(nms) # |>
+  # filter(sanctuary != "Monitor") # TODO: resolve issues with no data for Monitor
   # filter(nms == "FKNMS")       # DEBUG FKNMS
 
 # _navbar.html: only update if Sanctuaries change
